@@ -1,0 +1,2 @@
+// Expect: ERROR - dimension 257 exceeds the maximum of 256
+matrix A[257][257];

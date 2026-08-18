@@ -1,0 +1,28 @@
+// A single neural network layer: activation of a weighted product.
+//
+//   output = relu(W x X)
+//
+// This is the workload the whole project is aimed at - it is the reason the
+// language has matmul and relu as primitives rather than as library calls.
+matrix W[4][4];      // weights
+matrix X[4][4];      // input activations
+matrix H[4][4];      // pre-activation
+matrix Y[4][4];      // output
+
+W = [
+    [0.5, -0.2, 0.3, 0.1],
+    [-0.4, 0.6, -0.1, 0.2],
+    [0.2, 0.3, -0.5, 0.4],
+    [-0.3, 0.1, 0.2, -0.6]
+];
+
+X = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+];
+
+H = matmul(W, X);
+Y = relu(H);
+print(Y);

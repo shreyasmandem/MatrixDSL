@@ -1,0 +1,22 @@
+// Matrix multiplication against the identity matrix.
+// The result must equal A exactly, which makes this a self-checking test.
+matrix A[4][4];
+matrix I[4][4];
+matrix C[4][4];
+
+A = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+];
+
+I = [
+    [1, 0, 0, 0],
+    [0, 1, 0, 0],
+    [0, 0, 1, 0],
+    [0, 0, 0, 1]
+];
+
+C = matmul(A, I);
+print(C);

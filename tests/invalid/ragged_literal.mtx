@@ -1,0 +1,3 @@
+// Expect: ERROR - literal rows have differing lengths (2 and 3)
+matrix A[2][2];
+A = [[1, 2], [3, 4, 5]];

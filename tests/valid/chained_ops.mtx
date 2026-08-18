@@ -1,0 +1,7 @@
+// Expect: accepted. Shapes propagate through nesting:
+// matmul(4x4, 4x4) -> 4x4, then relu -> 4x4
+matrix A[4][4];
+matrix B[4][4];
+matrix C[4][4];
+C = relu(matmul(A, B));
+print(C);

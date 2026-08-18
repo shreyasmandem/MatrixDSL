@@ -1,0 +1,7 @@
+basic_addition.mtx
+chained_ops.mtx
+rectangular_matmul.mtx
+relu_preserves_shape.mtx
+scalar_multiply.mtx
+subtraction.mtx
+transpose_rect.mtx

@@ -1,0 +1,9 @@
+// 16x16 multiplication, exercising the tiling path.
+// The backend decomposes this into a 4x4 grid of 4x4 tiles and issues
+// MATMUL per tile triple.
+matrix A[16][16];
+matrix B[16][16];
+matrix C[16][16];
+
+C = matmul(A, B);
+print(C);

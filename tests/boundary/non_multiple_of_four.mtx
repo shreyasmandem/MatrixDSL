@@ -1,0 +1,7 @@
+// Expect: accepted. 5x7 is not tile-aligned, so the tiling pass must
+// zero-pad to 8x8 while preserving the logical 5x7 shape for print.
+matrix A[5][7];
+matrix B[7][3];
+matrix C[5][3];
+C = matmul(A, B);
+print(C);

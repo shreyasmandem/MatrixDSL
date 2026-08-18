@@ -1,0 +1,4 @@
+// Expect: ERROR - transpose(4x3) yields 3x4, cannot assign to 4x4
+matrix A[4][3];
+matrix C[4][4];
+C = transpose(A);

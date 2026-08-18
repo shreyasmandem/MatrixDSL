@@ -1,0 +1,21 @@
+// Matrix addition - element-wise sum of two 4x4 matrices
+matrix A[4][4];
+matrix B[4][4];
+matrix C[4][4];
+
+A = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 16]
+];
+
+B = [
+    [16, 15, 14, 13],
+    [12, 11, 10, 9],
+    [8, 7, 6, 5],
+    [4, 3, 2, 1]
+];
+
+C = A + B;
+print(C);

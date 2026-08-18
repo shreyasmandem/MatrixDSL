@@ -1,0 +1,6 @@
+// Expect: accepted. matmul(1x4, 4x1) yields 1x1 - a dot product
+matrix A[1][4];
+matrix B[4][1];
+matrix C[1][1];
+C = matmul(A, B);
+print(C);

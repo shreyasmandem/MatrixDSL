@@ -1,0 +1,5 @@
+// Expect: LEXICAL ERROR - invalid character '@'
+matrix A[4][4];
+matrix B[4][4];
+matrix C[4][4];
+C = A @ B;

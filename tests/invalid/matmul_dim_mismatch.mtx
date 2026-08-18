@@ -1,0 +1,5 @@
+// Expect: ERROR - matmul requires A.cols == B.rows, but 3 != 7
+matrix A[4][3];
+matrix B[7][5];
+matrix C[4][5];
+C = matmul(A, B);

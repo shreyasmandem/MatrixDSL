@@ -1,0 +1,5 @@
+// Expect: ERROR - matmul yields 4x5, cannot assign to 4x4
+matrix A[4][3];
+matrix B[3][5];
+matrix C[4][4];
+C = matmul(A, B);

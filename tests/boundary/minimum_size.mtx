@@ -1,0 +1,6 @@
+// Expect: accepted. 1x1 is the minimum legal matrix
+matrix A[1][1];
+matrix B[1][1];
+matrix C[1][1];
+C = matmul(A, B);
+print(C);

@@ -1,0 +1,5 @@
+// Expect: accepted. Scalar multiplication preserves shape
+matrix A[4][4];
+matrix B[4][4];
+B = 2.0 * A;
+print(B);

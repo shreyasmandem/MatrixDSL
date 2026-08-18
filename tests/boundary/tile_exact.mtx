@@ -1,0 +1,6 @@
+// Expect: accepted. Exactly one tile, no padding required
+matrix A[4][4];
+matrix B[4][4];
+matrix C[4][4];
+C = matmul(A, B);
+print(C);

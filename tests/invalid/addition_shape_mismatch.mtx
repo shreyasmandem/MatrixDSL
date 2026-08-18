@@ -1,0 +1,5 @@
+// Expect: ERROR - addition requires identical shapes, 4x4 vs 3x3
+matrix A[4][4];
+matrix B[3][3];
+matrix C[4][4];
+C = A + B;

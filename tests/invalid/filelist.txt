@@ -1,0 +1,11 @@
+addition_shape_mismatch.mtx
+assign_shape_mismatch.mtx
+invalid_character.mtx
+literal_shape_mismatch.mtx
+matmul_dim_mismatch.mtx
+missing_semicolon.mtx
+print_undeclared.mtx
+ragged_literal.mtx
+redeclaration.mtx
+transpose_assign_mismatch.mtx
+undeclared_identifier.mtx

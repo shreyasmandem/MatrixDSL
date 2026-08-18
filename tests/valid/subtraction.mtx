@@ -1,0 +1,6 @@
+// Expect: accepted
+matrix A[3][3];
+matrix B[3][3];
+matrix C[3][3];
+C = A - B;
+print(C);

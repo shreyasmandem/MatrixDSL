@@ -1,0 +1,13 @@
+// ReLU activation - every negative element becomes zero
+matrix A[4][4];
+matrix R[4][4];
+
+A = [
+    [-1, 2, -3, 4],
+    [5, -6, 7, -8],
+    [-9, 10, -11, 12],
+    [13, -14, 15, -16]
+];
+
+R = relu(A);
+print(R);

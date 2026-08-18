@@ -5,8 +5,7 @@ Individual contribution branch for **MatrixDSL**, Team 13, BCSE307P Compiler Des
 This branch contains **only my own work**: the front end of the compiler — lexical
 analysis, the grammar, the parser interface, and the AST node hierarchy. Team-level
 deliverables (Review 1 report and presentation, timeline, responsibility matrix) and
-the other members' modules live on [`main`](../../tree/main) and are not duplicated
-here.
+the other members' modules live on [`main`](../../tree/main).
 
 ---
 

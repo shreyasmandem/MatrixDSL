@@ -1,0 +1,4 @@
+// Expect: accepted. transpose(4x3) -> 3x4
+matrix A[4][3];
+matrix T[3][4];
+T = transpose(A);

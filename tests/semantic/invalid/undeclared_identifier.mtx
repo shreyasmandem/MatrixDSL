@@ -1,0 +1,4 @@
+// Expect: ERROR UndeclaredIdentifier - 'Z'
+matrix A[4][4];
+matrix C[4][4];
+C = A + Z;

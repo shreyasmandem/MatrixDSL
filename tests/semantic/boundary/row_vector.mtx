@@ -1,0 +1,3 @@
+// Expect: accepted. 1x256 row vector
+matrix A[1][256];
+print(A);

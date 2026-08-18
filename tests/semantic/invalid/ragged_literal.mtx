@@ -1,0 +1,5 @@
+// Expect: ERROR RaggedMatrixLiteral - rows of length 2 and 3
+// Note: this PARSES fine. It is rejected here, not by the parser, so the
+// user gets a proper diagnostic instead of a syntax error.
+matrix A[2][2];
+A = [[1, 2], [3, 4, 5]];

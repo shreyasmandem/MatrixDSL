@@ -1,0 +1,44 @@
+# Build output
+build/
+cmake-build-*/
+out/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.ilk
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+!scripts/Makefile
+
+# Compiler output
+*.ll
+*.bc
+*.s
+!tests/backend/**/*.s
+!examples/expected/*.s
+
+# Benchmark results
+benchmarks/results/*.csv
+benchmarks/results/*.json
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Python (tooling scripts)
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,4 @@
+// Expect: ONE IDENTIFIER 'matrixx', NOT keyword MATRIX followed by 'x'.
+// This is the maximal-munch case: keywords are matched only after a full
+// identifier has been scanned.
+matrixx

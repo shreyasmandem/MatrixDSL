@@ -1,0 +1,7 @@
+// Expect AST: ((A - B) - D), NOT (A - (B - D)).
+// Subtraction is left-associative.
+matrix A[2][2];
+matrix B[2][2];
+matrix D[2][2];
+matrix C[2][2];
+C = A - B - D;

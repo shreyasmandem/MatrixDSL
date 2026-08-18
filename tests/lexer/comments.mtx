@@ -1,0 +1,3 @@
+// This whole line is skipped.
+matrix A[4][4];   // trailing comment is skipped too
+// Expect: only the tokens of the declaration, no comment tokens

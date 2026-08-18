@@ -1,0 +1,6 @@
+// Expect AST: '*' at the root - parentheses override precedence
+matrix A[2][2];
+matrix B[2][2];
+matrix D[2][2];
+matrix C[2][2];
+C = (A + B) * D;

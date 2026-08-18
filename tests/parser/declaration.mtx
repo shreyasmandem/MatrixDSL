@@ -1,0 +1,2 @@
+// Expect AST: MatrixDecl(A, 4, 4)
+matrix A[4][4];

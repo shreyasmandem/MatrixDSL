@@ -1,0 +1,3 @@
+// Expect: SYNTAX ERROR - expected ']'
+matrix A[2][2];
+A = [[1, 2], [3, 4];

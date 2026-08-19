@@ -119,9 +119,9 @@ review:
 | Branch | Owner | Contents |
 |---|---|---|
 | `main` | Team | Docs, Review 1 deliverables, shared headers, build system, tests |
-| `vinay` | Vinay A | Lexer, parser, AST implementation |
+| `Vinay-A` | Vinay A | Lexer, parser, AST implementation |
 | `parth` | Mudpe Parth Tulsidas | Semantic analyzer, symbol table, matrix type system |
-| `kandi` | Kandi Jeevitesh Reddy | LLVM IR codegen, optimization pipeline |
+| `Jeevitesh` | Kandi Jeevitesh Reddy | LLVM IR codegen, optimization pipeline |
 | `shreyas` | Shreyas Mandem | MDT ISA, TableGen descriptions, backend, simulator |
 
 Freezing the AST and token definitions on `main` first is deliberate: it lets all four
@@ -167,7 +167,9 @@ Test plan and case inventory: [`docs/testing.md`](docs/testing.md)
 | [`docs/isa.md`](docs/isa.md) | MDT instruction set and register model |
 | [`docs/llvm-backend.md`](docs/llvm-backend.md) | Backend design, TableGen, instruction selection |
 | [`docs/testing.md`](docs/testing.md) | Testing strategy |
-| [`docs/review1/Review1_Report.md`](docs/review1/Review1_Report.md) | Full Review 1 report |
+| [`docs/review1/Review1_Report.pdf`](docs/review1/Review1_Report.pdf) | **Review 1 report — PDF submission copy (23 pages)** |
+| [`docs/review1/Review1_Report.md`](docs/review1/Review1_Report.md) | Review 1 report — markdown source |
+| [`docs/review1/Review1_Presentation.pptx`](docs/review1/Review1_Presentation.pptx) | Review 1 presentation — 14 slides |
 
 ## Status
 

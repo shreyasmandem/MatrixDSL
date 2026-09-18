@@ -90,22 +90,35 @@ A 128×128 matrix becomes a 32×32 grid of 4×4 tiles.
 
 Full specification: [`docs/isa.md`](docs/isa.md)
 
+## Phase 2 — evolving toward a tensor / AI compiler
+
+Phase 2 extends the project from a matrix DSL into a small tensor DSL, adds a
+hand-rolled Tensor IR (MLIR-inspired, not MLIR itself) between semantic analysis and
+LLVM IR, and extends MDT with 7 new instructions for operator fusion, mixed-precision
+storage, and a scratchpad memory hierarchy — enough to compile and run a transformer
+feed-forward block and a single-head attention kernel, and to measure the effect of
+fusion and tiling with a controlled ablation study.
+
+Full design: [`docs/review2/Review2_Report.pdf`](docs/review2/Review2_Report.pdf)
+
 ## Repository layout
 
 ```
 MatrixDSL/
 ├── docs/                  Language spec, grammar, architecture, ISA, backend, testing
-│   └── review1/           Review 1 report, matrices, timeline, contribution log
+│   ├── review1/           Review 1 report, matrices, timeline, contribution log
+│   └── review2/           Review 2 report, responsibility matrix, roadmap
 ├── compiler/
 │   ├── frontend/          lexer/ parser/ ast/ semantic/
+│   ├── tensor-ir/         Phase 2: Tensor IR, fusion pass, hierarchical tiling
 │   ├── llvm/              LLVM IR generation + optimization
 │   └── driver/            Compiler driver / CLI
 ├── llvm-backend/MDT/      Custom LLVM target (TableGen + C++)
 ├── runtime/               Matrix runtime support library
-├── tools/mdtsim/          MDT instruction-set simulator
+├── tools/mdtsim/          MDT instruction-set simulator + performance model
 ├── examples/              Sample MatrixDSL programs
-├── tests/                 valid / invalid / boundary / integration
-├── benchmarks/            Baseline comparison workloads
+├── benchmarks/            ffn_block.mtx, attention_head.mtx, baseline workloads
+├── tests/                 valid / invalid / boundary / integration / tensor-ir / fusion
 └── scripts/               build / test / benchmark helpers
 ```
 
@@ -167,14 +180,21 @@ Test plan and case inventory: [`docs/testing.md`](docs/testing.md)
 | [`docs/isa.md`](docs/isa.md) | MDT instruction set and register model |
 | [`docs/llvm-backend.md`](docs/llvm-backend.md) | Backend design, TableGen, instruction selection |
 | [`docs/testing.md`](docs/testing.md) | Testing strategy |
-| [`docs/review1/Review1_Report.pdf`](docs/review1/Review1_Report.pdf) | **Review 1 report — PDF submission copy (23 pages)** |
+| [`docs/review1/Review1_Report.pdf`](docs/review1/Review1_Report.pdf) | Review 1 report — PDF submission copy (23 pages) |
 | [`docs/review1/Review1_Report.md`](docs/review1/Review1_Report.md) | Review 1 report — markdown source |
 | [`docs/review1/Review1_Presentation.pptx`](docs/review1/Review1_Presentation.pptx) | Review 1 presentation — 14 slides |
+| [`docs/review2/Review2_Report.pdf`](docs/review2/Review2_Report.pdf) | **Review 2 report — PDF submission copy** |
+| [`docs/review2/Review2_Report.md`](docs/review2/Review2_Report.md) | Review 2 report — markdown source |
+| [`docs/review2/responsibility-matrix.md`](docs/review2/responsibility-matrix.md) | Phase 2 team responsibility matrix |
+| [`docs/review2/roadmap.md`](docs/review2/roadmap.md) | Phase 2 16-week roadmap and milestones |
 
 ## Status
 
-Review 1 — initial design, planning and feasibility. Language and ISA frozen;
-shared interfaces defined; MDT simulator prototype operational.
+Review 2 — Phase 2 architecture designed and frozen: Tensor IR, 7 new MDT
+instructions, scratchpad memory hierarchy, fusion strategy, and the benchmark/ablation
+plan are committed. Implementation against this design is in progress on individual
+branches. Review 1 (initial design, planning and feasibility) is complete; see
+[`docs/review1/`](docs/review1/).
 
 ## License
 

@@ -56,16 +56,41 @@ Phase 2 benchmarks (`ffn_block.mtx`) use directly.
 ### 2.3 `CVT.F32.BF16` / `CVT.BF16.F32` — mixed-precision storage
 
 Compute inside `M0`–`M7` stays FP32 (§4.3 of the Phase 2 report — the `MATMUL`
-datapath is not touched). BF16 exists only as a *storage* format: a tile is
-converted to BF16 immediately before a `STORE` to halve the bytes moved, and
-converted back to FP32 immediately after a `LOAD`. Conversion is scalar
-(element-at-a-time via `R` registers), reflecting that this is a memory-bandwidth
-optimisation, not a new compute mode.
+datapath is not touched). BF16 exists only as a *storage* format: a value is
+rounded to BF16 precision before it is written out, and treated as full
+precision again once it is read back in. Conversion is scalar (element-at-a-time
+via `R` registers), reflecting that this is a memory-bandwidth optimisation, not
+a new compute mode.
 
-Truncation semantics: `CVT.F32.BF16` keeps the top 16 bits of the IEEE-754 FP32
-representation (sign, 8-bit exponent, top 7 mantissa bits) — the standard
-round-toward-zero BF16 truncation. `CVT.BF16.F32` zero-extends those 16 bits back
-into the low half of the mantissa.
+**Bit convention — the BF16 payload always lives in the top 16 bits of a
+32-bit register, bottom 16 bits zero.** This falls directly out of what BF16
+*is*: an IEEE-754 FP32 bit pattern's sign, 8-bit exponent and top 7 mantissa
+bits, with the bottom 16 mantissa bits dropped. A register holding that pattern
+with the bottom 16 bits zeroed is, bit-for-bit, already a valid (reduced-
+precision) FP32 value — no bit-shuffling is needed to reinterpret it as one.
+
+- `CVT.F32.BF16 Rd, Rs`: `Rd = Rs & 0xFFFF0000` — rounds Rs to BF16 precision
+  by zeroing its bottom 16 mantissa bits. This is the numerically-observable
+  step: it is what a differential test checks for precision loss.
+- `CVT.BF16.F32 Rd, Rs`: `Rd = Rs`, an exact copy. Given the bit convention
+  above, a BF16-rounded value is *already* a valid FP32 bit pattern, so no
+  bits move. The instruction exists anyway, distinct from a plain register
+  move, for two reasons: it is how generated assembly documents *which*
+  values the compiler considers full-precision again from this point on, and
+  it is the one instruction a future extension modelling genuinely packed
+  16-bit storage (half the memory footprint, not just rounded precision -
+  explicitly **not** committed for Phase 2, see docs/review2/
+  Review2_Report.md §4.3) would extend to do real zero-extension work,
+  without having to invent a new opcode at that point.
+
+**Explicit scope limit:** Phase 2 models the *numerical* effect of BF16
+storage (precision loss) but not the *memory-footprint* effect (halved
+bytes-per-element in DRAM/scratchpad). Modelling packed 2-byte storage would
+mean re-deriving every `LOAD`/`STORE` width and address calculation in the
+simulator for a detail the report's own scope table already marks optional.
+The bytes-moved column in the performance model (§6, `docs/memory-hierarchy.md`)
+counts BF16-converted transfers at the same width as FP32 ones for this
+reason, and that undercount is stated here rather than left implicit.
 
 ### 2.4 `VREDSUM`, `MROWMAX`, `MROWSUM` — reduction primitives for softmax
 

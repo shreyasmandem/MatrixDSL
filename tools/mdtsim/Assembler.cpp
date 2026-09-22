@@ -167,6 +167,14 @@ bool parseInteger(const std::string &text, int64_t &out) {
   if (text[0] == '-' || text[0] == '+') {
     negative = (text[0] == '-');
     i = 1;
+    // A memory operand's offset is tokenized as "+ 16" (space preserved
+    // between the sign and the digits - see tokenizeLine, which keeps
+    // everything inside brackets verbatim), so the sign and the digits are
+    // not necessarily adjacent. Skip past that whitespace explicitly rather
+    // than requiring the caller to have already stripped it.
+    while (i < text.size() &&
+           std::isspace(static_cast<unsigned char>(text[i])))
+      ++i;
   }
   if (i >= text.size())
     return false;
@@ -186,7 +194,13 @@ bool parseInteger(const std::string &text, int64_t &out) {
     if (!std::isdigit(static_cast<unsigned char>(text[j])))
       return false;
 
-  out = std::atoll(text.c_str());
+  // Parse from the validated digit substring directly rather than handing
+  // the original (possibly sign-space-digit) text to atoll: atoll's
+  // whitespace-skipping is only specified before the sign, not between the
+  // sign and the first digit, so trusting it here would be relying on
+  // unspecified behaviour rather than a documented guarantee.
+  const long long magnitude = std::atoll(text.c_str() + i);
+  out = negative ? -magnitude : magnitude;
   return true;
 }
 
@@ -345,37 +359,50 @@ bool Assembler::decodeInstruction(const std::vector<std::string> &tokens,
     return false;
   }
 
+  // LOADT/STORET both assemble to the LOAD/STORE opcode (see kOpcodes), but
+  // take one extra trailing operand - the row stride in bytes, per
+  // docs/isa.md section 4.2's "strided variants... share the LOAD/STORE
+  // opcodes with a mode bit". The mnemonic itself, not the resulting Opcode
+  // (which is identical for LOAD and LOADT), is what distinguishes the two
+  // arities, so it has to be checked here rather than in the switch below.
+  const std::string upperMnemonic = toUpper(tokens[0]);
+  const bool isStrided = (upperMnemonic == "LOADT" || upperMnemonic == "STORET");
+
   const size_t operandCount = tokens.size() - 1;
 
   // Arity check up front, so a malformed instruction produces one clear
   // diagnostic rather than a confusing downstream failure.
   size_t expected = 0;
-  switch (out.op) {
-  case Opcode::NOP:
-  case Opcode::RET:
-  case Opcode::HALT:
-    expected = 0;
-    break;
-  case Opcode::BR:
-  case Opcode::JMP:
-  case Opcode::CALL:
-    expected = 1;
-    break;
-  case Opcode::LOAD:
-  case Opcode::STORE:
-  case Opcode::TRANSPOSE:
-  case Opcode::RELU:
-    expected = 2;
-    break;
-  default:
-    expected = 3; // ADD SUB MUL BEQ BNE VADD VMUL MATMUL
-    break;
+  if (isStrided) {
+    expected = 3; // Md/Ms, [Rbase + imm], stride
+  } else {
+    switch (out.op) {
+    case Opcode::NOP:
+    case Opcode::RET:
+    case Opcode::HALT:
+      expected = 0;
+      break;
+    case Opcode::BR:
+    case Opcode::JMP:
+    case Opcode::CALL:
+      expected = 1;
+      break;
+    case Opcode::LOAD:
+    case Opcode::STORE:
+    case Opcode::TRANSPOSE:
+    case Opcode::RELU:
+      expected = 2;
+      break;
+    default:
+      expected = 3; // ADD SUB MUL BEQ BNE VADD VMUL MATMUL
+      break;
+    }
   }
 
   if (operandCount != expected) {
     std::ostringstream os;
-    os << opcodeName(out.op) << " expects " << expected << " operand(s), got "
-       << operandCount;
+    os << (isStrided ? upperMnemonic : std::string(opcodeName(out.op)))
+       << " expects " << expected << " operand(s), got " << operandCount;
     error(line, os.str(), raw);
     return false;
   }
@@ -384,6 +411,24 @@ bool Assembler::decodeInstruction(const std::vector<std::string> &tokens,
   for (size_t i = 0; i < operandCount && i < 3; ++i)
     if (!parseOperand(tokens[i + 1], line, *slots[i]))
       return false;
+
+  if (isStrided) {
+    // The trailing stride operand is folded into the memory operand's own
+    // `.stride` field, which is where the simulator's execLoad/execStore
+    // actually look for it (MDTSim.cpp readFloats/writeFloats). src2 itself
+    // plays no further role once this transfer happens.
+    if (!out.src1.isMemory()) {
+      error(line, std::string(upperMnemonic) +
+                     ": second operand must be a memory operand", raw);
+      return false;
+    }
+    if (out.src2.kind != Operand::Kind::Immediate) {
+      error(line, std::string(upperMnemonic) +
+                     ": stride operand must be an immediate", raw);
+      return false;
+    }
+    out.src1.stride = static_cast<int32_t>(out.src2.immediate);
+  }
 
   return true;
 }
@@ -400,12 +445,14 @@ void Assembler::error(int line, const std::string &message,
 bool Assembler::firstPass(const std::string &source) {
   std::istringstream in(source);
   std::string line;
-  int lineNo = 0;
   size_t instructionIndex = 0;
   bool dataSection = false;
 
+  // Labels recorded here carry no line number - firstPass only needs to know
+  // WHERE each label points (an instruction index or a data offset), not
+  // where it was written; that is why unlike secondPass, no lineNo counter
+  // is tracked or threaded through error() here.
   while (std::getline(in, line)) {
-    ++lineNo;
     std::string work = trim(line);
 
     // Strip comments before looking for labels.

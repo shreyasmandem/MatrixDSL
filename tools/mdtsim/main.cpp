@@ -13,6 +13,8 @@
 //   --dump-vector        dump V0-V7 on completion
 //   --dump-matrix [N]    dump M0-M7, or just MN
 //   --dump-all           dump every register file
+//   --perf               print the Phase 2 performance model report
+//                        (docs/memory-hierarchy.md section 4)
 //   --max-instr N        instruction limit (default 10000000)
 //   --quiet              suppress the banner
 //
@@ -39,6 +41,7 @@ void printUsage(const char *program) {
   std::printf("  --dump-vector        dump V0-V7 on completion\n");
   std::printf("  --dump-matrix [N]    dump all matrix registers, or just MN\n");
   std::printf("  --dump-all           dump every register file\n");
+  std::printf("  --perf               print the performance model report\n");
   std::printf("  --max-instr N        instruction limit\n");
   std::printf("  --quiet              suppress the banner\n");
   std::printf("  -h, --help           this message\n");
@@ -83,6 +86,8 @@ int main(int argc, char **argv) {
       options.dumpVector = true;
     } else if (arg == "--dump-all") {
       dumpAll = true;
+    } else if (arg == "--perf") {
+      options.perf = true;
     } else if (arg == "--dump-matrix") {
       options.dumpMatrix = true;
       // An optional register operand may follow, e.g. "--dump-matrix M0".
@@ -182,6 +187,10 @@ int main(int argc, char **argv) {
       else
         sim.dumpAllMatrixRegisters();
     }
+  }
+
+  if (options.perf) {
+    std::printf("\n%s", sim.performanceModel().summary().c_str());
   }
 
   if (!quiet)

@@ -96,12 +96,23 @@ const OpcodeEntry kOpcodes[] = {
     {"SUB", Opcode::SUB},         {"MUL", Opcode::MUL},
     {"LOAD", Opcode::LOAD},       {"STORE", Opcode::STORE},
     {"LOADT", Opcode::LOAD},      {"STORET", Opcode::STORE},
+    // Phase 2: SCRATCHLOAD/SCRATCHSTORE are LOAD/STORE with the scratchpad
+    // address-space bit set (docs/isa-extensions.md section 3) - same
+    // "share the opcode, distinguish by mnemonic" pattern as LOADT/STORET
+    // above, not a new opcode.
+    {"SCRATCHLOAD", Opcode::LOAD},  {"SCRATCHSTORE", Opcode::STORE},
     {"BR", Opcode::BR},           {"BEQ", Opcode::BEQ},
     {"BNE", Opcode::BNE},         {"JMP", Opcode::JMP},
     {"CALL", Opcode::CALL},       {"RET", Opcode::RET},
     {"VADD", Opcode::VADD},       {"VMUL", Opcode::VMUL},
     {"MATMUL", Opcode::MATMUL},   {"TRANSPOSE", Opcode::TRANSPOSE},
     {"RELU", Opcode::RELU},       {"HALT", Opcode::HALT},
+    // Phase 2 real opcodes (docs/isa-extensions.md section 4: 0x50-0x72)
+    {"MATMULACC", Opcode::MATMULACC},   {"MATMULRELU", Opcode::MATMULRELU},
+    {"CVT.F32.BF16", Opcode::CVT_F32_BF16},
+    {"CVT.BF16.F32", Opcode::CVT_BF16_F32},
+    {"VREDSUM", Opcode::VREDSUM},
+    {"MROWMAX", Opcode::MROWMAX}, {"MROWSUM", Opcode::MROWSUM},
 };
 
 std::string toUpper(const std::string &s) {
@@ -126,6 +137,11 @@ Opcode parseOpcode(const std::string &mnemonic) {
     if (upper == e.name)
       return e.op;
   return Opcode::INVALID;
+}
+
+bool isMatMulFamily(Opcode op) {
+  return op == Opcode::MATMUL || op == Opcode::MATMULACC ||
+         op == Opcode::MATMULRELU;
 }
 
 //===----------------------------------------------------------------------===//
@@ -391,10 +407,18 @@ bool Assembler::decodeInstruction(const std::vector<std::string> &tokens,
     case Opcode::STORE:
     case Opcode::TRANSPOSE:
     case Opcode::RELU:
+    // Phase 2: all four take (dst, src) - same shape as TRANSPOSE/RELU.
+    case Opcode::CVT_F32_BF16:
+    case Opcode::CVT_BF16_F32:
+    case Opcode::VREDSUM:
+    case Opcode::MROWMAX:
+    case Opcode::MROWSUM:
       expected = 2;
       break;
     default:
-      expected = 3; // ADD SUB MUL BEQ BNE VADD VMUL MATMUL
+      // ADD SUB MUL BEQ BNE VADD VMUL MATMUL, plus Phase 2's MATMULACC and
+      // MATMULRELU - all five/seven take (dst, src1, src2).
+      expected = 3;
       break;
     }
   }
@@ -428,6 +452,21 @@ bool Assembler::decodeInstruction(const std::vector<std::string> &tokens,
       return false;
     }
     out.src1.stride = static_cast<int32_t>(out.src2.immediate);
+  }
+
+  // Phase 2: SCRATCHLOAD/SCRATCHSTORE select the scratchpad address space by
+  // setting the memory operand's `.scratchpad` flag - docs/memory-hierarchy.md
+  // section 3's AS bit. Same "mnemonic implies a flag on the memory operand"
+  // shape as the stride transfer above, but simpler: no extra operand to
+  // fold in, the address-space choice is entirely determined by which
+  // mnemonic was written.
+  if (upperMnemonic == "SCRATCHLOAD" || upperMnemonic == "SCRATCHSTORE") {
+    if (!out.src1.isMemory()) {
+      error(line, upperMnemonic + ": second operand must be a memory operand",
+            raw);
+      return false;
+    }
+    out.src1.scratchpad = true;
   }
 
   return true;

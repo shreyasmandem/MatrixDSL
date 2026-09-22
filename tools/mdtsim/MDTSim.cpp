@@ -24,6 +24,7 @@ void MachineState::reset() {
   std::memset(V, 0, sizeof(V));
   std::memset(M, 0, sizeof(M));
   std::fill(memory.begin(), memory.end(), static_cast<uint8_t>(0));
+  std::fill(scratchpad.begin(), scratchpad.end(), static_cast<uint8_t>(0));
   pc = 0;
   halted = false;
 }
@@ -33,7 +34,7 @@ void MachineState::reset() {
 //===----------------------------------------------------------------------===//
 
 Simulator::Simulator(SimulatorOptions options)
-    : state_(options.memoryBytes), options_(options) {}
+    : state_(options.memoryBytes, options.scratchpadBytes), options_(options) {}
 
 void Simulator::load(const std::vector<Instruction> &code,
                      const std::vector<uint8_t> &data) {
@@ -65,60 +66,69 @@ void Simulator::runtimeError(const Instruction &inst,
 // instead of corrupting simulator state.
 //===----------------------------------------------------------------------===//
 
-bool Simulator::readWord(size_t address, int32_t &out) {
-  if (address + 4 > state_.memory.size())
+/// Phase 2: every access now resolves against one of two arrays depending on
+/// the memory operand's `.scratchpad` flag (docs/memory-hierarchy.md section
+/// 3's AS bit) - DRAM (state_.memory, Phase 1's only memory, unchanged in
+/// role and size) or the new scratchpad (state_.scratchpad). Bounds are
+/// checked against whichever array was selected.
+bool Simulator::readWord(size_t address, bool scratchpad, int32_t &out) {
+  std::vector<uint8_t> &mem = scratchpad ? state_.scratchpad : state_.memory;
+  if (address + 4 > mem.size())
     return false;
-  std::memcpy(&out, state_.memory.data() + address, 4);
+  std::memcpy(&out, mem.data() + address, 4);
   return true;
 }
 
-bool Simulator::writeWord(size_t address, int32_t value) {
-  if (address + 4 > state_.memory.size())
+bool Simulator::writeWord(size_t address, bool scratchpad, int32_t value) {
+  std::vector<uint8_t> &mem = scratchpad ? state_.scratchpad : state_.memory;
+  if (address + 4 > mem.size())
     return false;
-  std::memcpy(state_.memory.data() + address, &value, 4);
+  std::memcpy(mem.data() + address, &value, 4);
   return true;
 }
 
 /// Read `count` floats. With stride == 0 the data is contiguous; otherwise
 /// each group of `rowLength` floats starts `stride` bytes after the previous,
 /// which is how a 4x4 tile is extracted from a wider matrix.
-bool Simulator::readFloats(size_t address, float *out, int count,
-                           int32_t stride, int rowLength) {
+bool Simulator::readFloats(size_t address, bool scratchpad, float *out,
+                           int count, int32_t stride, int rowLength) {
+  std::vector<uint8_t> &mem = scratchpad ? state_.scratchpad : state_.memory;
+
   if (stride == 0) {
-    if (address + static_cast<size_t>(count) * 4 > state_.memory.size())
+    if (address + static_cast<size_t>(count) * 4 > mem.size())
       return false;
-    std::memcpy(out, state_.memory.data() + address,
-                static_cast<size_t>(count) * 4);
+    std::memcpy(out, mem.data() + address, static_cast<size_t>(count) * 4);
     return true;
   }
 
   const int rows = count / rowLength;
   for (int r = 0; r < rows; ++r) {
     const size_t rowAddr = address + static_cast<size_t>(r) * stride;
-    if (rowAddr + static_cast<size_t>(rowLength) * 4 > state_.memory.size())
+    if (rowAddr + static_cast<size_t>(rowLength) * 4 > mem.size())
       return false;
-    std::memcpy(out + r * rowLength, state_.memory.data() + rowAddr,
+    std::memcpy(out + r * rowLength, mem.data() + rowAddr,
                 static_cast<size_t>(rowLength) * 4);
   }
   return true;
 }
 
-bool Simulator::writeFloats(size_t address, const float *in, int count,
-                            int32_t stride, int rowLength) {
+bool Simulator::writeFloats(size_t address, bool scratchpad, const float *in,
+                            int count, int32_t stride, int rowLength) {
+  std::vector<uint8_t> &mem = scratchpad ? state_.scratchpad : state_.memory;
+
   if (stride == 0) {
-    if (address + static_cast<size_t>(count) * 4 > state_.memory.size())
+    if (address + static_cast<size_t>(count) * 4 > mem.size())
       return false;
-    std::memcpy(state_.memory.data() + address, in,
-                static_cast<size_t>(count) * 4);
+    std::memcpy(mem.data() + address, in, static_cast<size_t>(count) * 4);
     return true;
   }
 
   const int rows = count / rowLength;
   for (int r = 0; r < rows; ++r) {
     const size_t rowAddr = address + static_cast<size_t>(r) * stride;
-    if (rowAddr + static_cast<size_t>(rowLength) * 4 > state_.memory.size())
+    if (rowAddr + static_cast<size_t>(rowLength) * 4 > mem.size())
       return false;
-    std::memcpy(state_.memory.data() + rowAddr, in + r * rowLength,
+    std::memcpy(mem.data() + rowAddr, in + r * rowLength,
                 static_cast<size_t>(rowLength) * 4);
   }
   return true;
@@ -181,31 +191,36 @@ bool Simulator::execLoad(const Instruction &inst) {
 
   const size_t address =
       static_cast<size_t>(state_.R[inst.src1.regIndex] + inst.src1.immediate);
+  const bool scratch = inst.src1.scratchpad;
 
   // The destination register class selects the transfer width:
   //   R -> 4 bytes, V -> 16 bytes (4 lanes), M -> 64 bytes (one 4x4 tile)
   switch (inst.dst.regClass) {
   case RegClass::Scalar: {
     int32_t value = 0;
-    if (!readWord(address, value)) {
+    if (!readWord(address, scratch, value)) {
       runtimeError(inst, "LOAD out of bounds");
       return false;
     }
     state_.R[inst.dst.regIndex] = value;
+    lastTransferBytes_ = 4;
     return true;
   }
   case RegClass::Vector:
-    if (!readFloats(address, state_.V[inst.dst.regIndex], kVectorLanes, 0, 0)) {
+    if (!readFloats(address, scratch, state_.V[inst.dst.regIndex],
+                    kVectorLanes, 0, 0)) {
       runtimeError(inst, "vector LOAD out of bounds");
       return false;
     }
+    lastTransferBytes_ = kVectorLanes * 4;
     return true;
   case RegClass::Matrix:
-    if (!readFloats(address, state_.M[inst.dst.regIndex], kTileElems,
+    if (!readFloats(address, scratch, state_.M[inst.dst.regIndex], kTileElems,
                     inst.src1.stride, kTileDim)) {
       runtimeError(inst, "matrix LOAD out of bounds");
       return false;
     }
+    lastTransferBytes_ = kTileBytes;
     return true;
   default:
     runtimeError(inst, "LOAD destination must be a register");
@@ -221,27 +236,31 @@ bool Simulator::execStore(const Instruction &inst) {
 
   const size_t address =
       static_cast<size_t>(state_.R[inst.src1.regIndex] + inst.src1.immediate);
+  const bool scratch = inst.src1.scratchpad;
 
   switch (inst.dst.regClass) {
   case RegClass::Scalar:
-    if (!writeWord(address, state_.R[inst.dst.regIndex])) {
+    if (!writeWord(address, scratch, state_.R[inst.dst.regIndex])) {
       runtimeError(inst, "STORE out of bounds");
       return false;
     }
+    lastTransferBytes_ = 4;
     return true;
   case RegClass::Vector:
-    if (!writeFloats(address, state_.V[inst.dst.regIndex], kVectorLanes, 0,
-                     0)) {
+    if (!writeFloats(address, scratch, state_.V[inst.dst.regIndex],
+                     kVectorLanes, 0, 0)) {
       runtimeError(inst, "vector STORE out of bounds");
       return false;
     }
+    lastTransferBytes_ = kVectorLanes * 4;
     return true;
   case RegClass::Matrix:
-    if (!writeFloats(address, state_.M[inst.dst.regIndex], kTileElems,
+    if (!writeFloats(address, scratch, state_.M[inst.dst.regIndex], kTileElems,
                      inst.src1.stride, kTileDim)) {
       runtimeError(inst, "matrix STORE out of bounds");
       return false;
     }
+    lastTransferBytes_ = kTileBytes;
     return true;
   default:
     runtimeError(inst, "STORE source must be a register");
@@ -347,6 +366,19 @@ bool Simulator::execVector(const Instruction &inst) {
   return true;
 }
 
+/// Shared by MATMUL, MATMULACC and MATMULRELU - all three compute the same
+/// 4x4 product; they differ only in what happens to the result afterwards
+/// (overwrite, accumulate into the destination, or clamp negatives to zero).
+static void matmulProduct(const float *a, const float *b, float *result) {
+  for (int i = 0; i < kTileDim; ++i)
+    for (int j = 0; j < kTileDim; ++j) {
+      float sum = 0.0f;
+      for (int k = 0; k < kTileDim; ++k)
+        sum += a[i * kTileDim + k] * b[k * kTileDim + j];
+      result[i * kTileDim + j] = sum;
+    }
+}
+
 bool Simulator::execMatrix(const Instruction &inst) {
   if (!checkRegister(inst.dst, RegClass::Matrix, inst) ||
       !checkRegister(inst.src1, RegClass::Matrix, inst))
@@ -361,15 +393,44 @@ bool Simulator::execMatrix(const Instruction &inst) {
       return false;
     const float *b = state_.M[inst.src2.regIndex];
 
-    // Accumulate into a temporary: the destination may alias a source.
+    // Compute into a temporary: the destination may alias a source.
     float result[kTileElems];
-    for (int i = 0; i < kTileDim; ++i)
-      for (int j = 0; j < kTileDim; ++j) {
-        float sum = 0.0f;
-        for (int k = 0; k < kTileDim; ++k)
-          sum += a[i * kTileDim + k] * b[k * kTileDim + j];
-        result[i * kTileDim + j] = sum;
-      }
+    matmulProduct(a, b, result);
+    std::memcpy(d, result, sizeof(result));
+    return true;
+  }
+
+  case Opcode::MATMULACC: {
+    // docs/isa-extensions.md 2.1: Md = Md + (Ma x Mb). The destination's
+    // PRIOR value is read before it is overwritten, so MATMULACC Md, Md, Mb
+    // (accumulating in place with Md also as a source) is well-defined.
+    if (!checkRegister(inst.src2, RegClass::Matrix, inst))
+      return false;
+    const float *b = state_.M[inst.src2.regIndex];
+
+    float product[kTileElems];
+    matmulProduct(a, b, product);
+
+    float result[kTileElems];
+    for (int i = 0; i < kTileElems; ++i)
+      result[i] = d[i] + product[i];
+    std::memcpy(d, result, sizeof(result));
+    return true;
+  }
+
+  case Opcode::MATMULRELU: {
+    // docs/isa-extensions.md 2.2: Md = relu(Ma x Mb) - the fused epilogue
+    // instruction the fusion pass targets for the matmul->relu pattern.
+    if (!checkRegister(inst.src2, RegClass::Matrix, inst))
+      return false;
+    const float *b = state_.M[inst.src2.regIndex];
+
+    float product[kTileElems];
+    matmulProduct(a, b, product);
+
+    float result[kTileElems];
+    for (int i = 0; i < kTileElems; ++i)
+      result[i] = product[i] > 0.0f ? product[i] : 0.0f;
     std::memcpy(d, result, sizeof(result));
     return true;
   }
@@ -392,6 +453,259 @@ bool Simulator::execMatrix(const Instruction &inst) {
     runtimeError(inst, "not a matrix instruction");
     return false;
   }
+}
+
+//===----------------------------------------------------------------------===//
+// Phase 2: mixed-precision storage and reduction primitives
+//===----------------------------------------------------------------------===//
+
+namespace {
+
+/// docs/isa-extensions.md 2.3: the BF16 payload lives in the top 16 bits of
+/// a 32-bit register, bottom 16 bits zero - a value in that form is already
+/// a valid (reduced-precision) FP32 bit pattern, no reinterpretation needed.
+int32_t roundToBF16(int32_t fp32Bits) { return fp32Bits & 0xFFFF0000; }
+
+} // namespace
+
+bool Simulator::execConvert(const Instruction &inst) {
+  if (!checkRegister(inst.dst, RegClass::Scalar, inst) ||
+      !checkRegister(inst.src1, RegClass::Scalar, inst))
+    return false;
+
+  const int32_t bits = state_.R[inst.src1.regIndex];
+
+  switch (inst.op) {
+  case Opcode::CVT_F32_BF16:
+    // The numerically-observable rounding step - docs/isa-extensions.md 2.3.
+    state_.R[inst.dst.regIndex] = roundToBF16(bits);
+    return true;
+  case Opcode::CVT_BF16_F32:
+    // An exact copy under the bit convention above - see 2.3 for why this
+    // is still a distinct instruction rather than being folded away.
+    state_.R[inst.dst.regIndex] = bits;
+    return true;
+  default:
+    runtimeError(inst, "not a conversion instruction");
+    return false;
+  }
+}
+
+bool Simulator::execReduce(const Instruction &inst) {
+  switch (inst.op) {
+  case Opcode::VREDSUM: {
+    if (!checkRegister(inst.dst, RegClass::Scalar, inst) ||
+        !checkRegister(inst.src1, RegClass::Vector, inst))
+      return false;
+    const float *v = state_.V[inst.src1.regIndex];
+    const float sum = v[0] + v[1] + v[2] + v[3];
+    // docs/isa-extensions.md 2.4: "truncated to i32 view of the sum" - VREDSUM
+    // is defined over the scalar register file, so the FP32 result is
+    // truncated toward zero into the destination the same way a compiler
+    // would for any float-to-int scalar move on this target.
+    state_.R[inst.dst.regIndex] = static_cast<int32_t>(sum);
+    return true;
+  }
+
+  case Opcode::MROWMAX:
+  case Opcode::MROWSUM: {
+    if (!checkRegister(inst.dst, RegClass::Vector, inst) ||
+        !checkRegister(inst.src1, RegClass::Matrix, inst))
+      return false;
+    const float *m = state_.M[inst.src1.regIndex];
+    float *v = state_.V[inst.dst.regIndex];
+    for (int row = 0; row < kTileDim; ++row) {
+      const float *rowData = m + row * kTileDim;
+      if (inst.op == Opcode::MROWMAX) {
+        float best = rowData[0];
+        for (int col = 1; col < kTileDim; ++col)
+          if (rowData[col] > best)
+            best = rowData[col];
+        v[row] = best;
+      } else {
+        float sum = 0.0f;
+        for (int col = 0; col < kTileDim; ++col)
+          sum += rowData[col];
+        v[row] = sum;
+      }
+    }
+    return true;
+  }
+
+  default:
+    runtimeError(inst, "not a reduction instruction");
+    return false;
+  }
+}
+
+//===----------------------------------------------------------------------===//
+// Performance model - docs/memory-hierarchy.md section 4, docs/
+// isa-extensions.md. See MDTSim.h for what this is and is not: a static
+// latency table plus a simple run-pairing heuristic, explicitly not
+// cycle-accurate.
+//===----------------------------------------------------------------------===//
+
+PerfClass classifyForPerf(Opcode op) {
+  switch (op) {
+  case Opcode::LOAD:
+  case Opcode::STORE:
+    return PerfClass::Transfer;
+
+  case Opcode::ADD:
+  case Opcode::SUB:
+  case Opcode::MUL:
+  case Opcode::VADD:
+  case Opcode::VMUL:
+  case Opcode::MATMUL:
+  case Opcode::MATMULACC:
+  case Opcode::MATMULRELU:
+  case Opcode::TRANSPOSE:
+  case Opcode::RELU:
+  case Opcode::CVT_F32_BF16:
+  case Opcode::CVT_BF16_F32:
+  case Opcode::VREDSUM:
+  case Opcode::MROWMAX:
+  case Opcode::MROWSUM:
+    return PerfClass::Compute;
+
+  default:
+    // NOP, control flow, CALL/RET, HALT: never part of a transfer/compute
+    // overlap pair - see the class comment on PerfClass in MDTSim.h.
+    return PerfClass::Other;
+  }
+}
+
+int instructionLatency(Opcode op, bool scratchpadAccess) {
+  // Deliberately simple, and deliberately NOT equal for DRAM vs scratchpad:
+  // if the two cost the same, tiling would show zero benefit in the model
+  // no matter how well it staged data, which would defeat the entire point
+  // of having a memory hierarchy at all. 8 vs 1 is illustrative, not a
+  // measurement of anything - it exists to make the ablation study in
+  // docs/review2/Review2_Report.md section 8 produce a non-trivial number
+  // when scratchpad tiling is toggled on.
+  if (op == Opcode::LOAD || op == Opcode::STORE)
+    return scratchpadAccess ? 1 : 8;
+
+  if (isMatMulFamily(op))
+    return 4; // 64 multiply-accumulates per instruction - the costliest op
+
+  switch (op) {
+  case Opcode::VADD:
+  case Opcode::VMUL:
+  case Opcode::TRANSPOSE:
+  case Opcode::RELU:
+  case Opcode::VREDSUM:
+  case Opcode::MROWMAX:
+  case Opcode::MROWSUM:
+    return 2;
+
+  case Opcode::ADD:
+  case Opcode::SUB:
+  case Opcode::MUL:
+  case Opcode::CVT_F32_BF16:
+  case Opcode::CVT_BF16_F32:
+  case Opcode::BR:
+  case Opcode::BEQ:
+  case Opcode::BNE:
+  case Opcode::JMP:
+  case Opcode::CALL:
+  case Opcode::RET:
+    return 1;
+
+  case Opcode::NOP:
+  case Opcode::HALT:
+    return 0;
+
+  default:
+    return 1;
+  }
+}
+
+std::string PerformanceModel::summary() const {
+  std::ostringstream os;
+  os << "Performance model (not cycle-accurate - see docs/memory-hierarchy.md"
+        " section 4)\n";
+  os << "------------------------------------------------------------------"
+        "----\n";
+  os << "  Instructions executed        : " << instructionCount << "\n";
+  os << "  Bytes moved (DRAM)           : " << bytesMovedDRAM << "\n";
+  os << "  Bytes moved (scratchpad)     : " << bytesMovedScratchpad << "\n";
+  os << "  Estimated cycles, sequential : " << sequentialCycles << "\n";
+  os << "  Estimated cycles, overlap-aware: " << overlapAwareCycles << "\n";
+  if (sequentialCycles > 0) {
+    const double reduction =
+        100.0 * static_cast<double>(sequentialCycles - overlapAwareCycles) /
+        static_cast<double>(sequentialCycles);
+    os << "  Overlap reduction            : ";
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%.1f%%", reduction);
+    os << buf << "\n";
+  }
+  return os.str();
+}
+
+void Simulator::recordPerfInstruction(Opcode op, bool scratchpadAccess,
+                                      int bytesMoved) {
+  ++perf_.instructionCount;
+
+  if (bytesMoved > 0) {
+    if (scratchpadAccess)
+      perf_.bytesMovedScratchpad += bytesMoved;
+    else
+      perf_.bytesMovedDRAM += bytesMoved;
+  }
+
+  const int latency = instructionLatency(op, scratchpadAccess);
+  perf_.sequentialCycles += latency;
+
+  // Build the run-length-encoded trace incrementally: extend the last run if
+  // this instruction shares its class, otherwise start a new run. No pairing
+  // happens here - see finalizePerformanceModel for why that has to be a
+  // separate pass over the finished list rather than done inline.
+  const PerfClass cls = classifyForPerf(op);
+  if (!perfRuns_.empty() && perfRuns_.back().first == cls)
+    perfRuns_.back().second += latency;
+  else
+    perfRuns_.emplace_back(cls, latency);
+}
+
+void Simulator::finalizePerformanceModel() {
+  // Non-overlapping pairwise reduction over the run-length-encoded trace.
+  // Each run is consumed by AT MOST ONE pairing, which is what makes this
+  // correct where the single-pass "pair with whatever is pending" design it
+  // replaced was not (see the comment on perfRuns_ in MDTSim.h): run i pairs
+  // with run i+1 only, never with i-1 as well.
+  //
+  // `Other` runs (branches, NOP, HALT, CALL/RET) always cost their cycles
+  // directly and are never a pairing partner - they mark a point where the
+  // straight-line "transfer then compute" adjacency the heuristic
+  // approximates cannot be assumed to hold.
+  long long total = 0;
+  size_t i = 0;
+  while (i < perfRuns_.size()) {
+    const PerfClass cls = perfRuns_[i].first;
+    const long long cycles = perfRuns_[i].second;
+
+    if (cls == PerfClass::Other) {
+      total += cycles;
+      ++i;
+      continue;
+    }
+
+    const bool hasPartner = (i + 1 < perfRuns_.size()) &&
+                            (perfRuns_[i + 1].first != PerfClass::Other) &&
+                            (perfRuns_[i + 1].first != cls);
+    if (hasPartner) {
+      const long long partnerCycles = perfRuns_[i + 1].second;
+      total += (cycles > partnerCycles ? cycles : partnerCycles);
+      i += 2;
+    } else {
+      total += cycles;
+      i += 1;
+    }
+  }
+
+  perf_.overlapAwareCycles = total;
 }
 
 bool Simulator::step() {
@@ -440,9 +754,22 @@ bool Simulator::step() {
     break;
 
   case Opcode::MATMUL:
+  case Opcode::MATMULACC:
+  case Opcode::MATMULRELU:
   case Opcode::TRANSPOSE:
   case Opcode::RELU:
     ok = execMatrix(inst);
+    break;
+
+  case Opcode::CVT_F32_BF16:
+  case Opcode::CVT_BF16_F32:
+    ok = execConvert(inst);
+    break;
+
+  case Opcode::VREDSUM:
+  case Opcode::MROWMAX:
+  case Opcode::MROWSUM:
+    ok = execReduce(inst);
     break;
 
   case Opcode::HALT:
@@ -456,6 +783,18 @@ bool Simulator::step() {
 
   ++executed_;
 
+  if (ok) {
+    // Phase 2: fold this instruction into the running performance totals.
+    // lastTransferBytes_ was set by execLoad/execStore just above for LOAD/
+    // STORE (including their LOADT/STORET/SCRATCHLOAD/SCRATCHSTORE forms);
+    // every other instruction moves no memory traffic.
+    const bool isMemoryOp = (inst.op == Opcode::LOAD || inst.op == Opcode::STORE);
+    const int bytesMoved = isMemoryOp ? lastTransferBytes_ : 0;
+    recordPerfInstruction(inst.op, isMemoryOp && inst.src1.scratchpad,
+                          bytesMoved);
+    lastTransferBytes_ = 0;
+  }
+
   if (!branched && !state_.halted)
     ++state_.pc;
 
@@ -465,6 +804,8 @@ bool Simulator::step() {
 bool Simulator::run() {
   executed_ = 0;
   errors_.clear();
+  perf_ = PerformanceModel();
+  perfRuns_.clear();
 
   while (!state_.halted && state_.pc < code_.size()) {
     if (executed_ >= options_.maxInstructions) {
@@ -475,6 +816,8 @@ bool Simulator::run() {
     if (!step())
       return false;
   }
+
+  finalizePerformanceModel();
 
   return errors_.empty();
 }

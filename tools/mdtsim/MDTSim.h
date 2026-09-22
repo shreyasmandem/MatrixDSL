@@ -13,7 +13,13 @@
 //
 // Where this simulator and docs/isa.md disagree, one of them is wrong and the
 // discrepancy must be resolved before the affected instruction is considered
-// implemented.
+// implemented. The same rule now applies to docs/isa-extensions.md and
+// docs/memory-hierarchy.md for everything added below.
+//
+// Phase 2 additions: 7 new instructions (docs/isa-extensions.md section 2), a
+// scratchpad address space reached via one address-space bit on LOAD/STORE
+// (docs/memory-hierarchy.md section 3), and a lightweight, explicitly
+// non-cycle-accurate performance model (section "Performance model" below).
 //
 //===----------------------------------------------------------------------===//
 
@@ -23,6 +29,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mdt {
@@ -46,6 +53,11 @@ constexpr int kRegRA = 15;
 
 constexpr size_t kDefaultMemoryBytes = 1u << 20; // 1 MiB
 
+/// Phase 2: scratchpad size - docs/memory-hierarchy.md section 2. 64 KiB is
+/// 1024 tiles of headroom, proportionate to a teaching accelerator; it is not
+/// a claim about real hardware (TPU v5e's VMEM is 128 MiB).
+constexpr size_t kScratchpadBytes = 64 * 1024;
+
 //===----------------------------------------------------------------------===//
 // Instruction representation
 //===----------------------------------------------------------------------===//
@@ -62,13 +74,24 @@ enum class Opcode {
   VADD, VMUL,
   // Matrix
   MATMUL, TRANSPOSE, RELU,
-  // Simulator control (not part of the 17-instruction ISA)
+  // Phase 2: fused matrix (docs/isa-extensions.md section 2.1-2.2)
+  MATMULACC, MATMULRELU,
+  // Phase 2: mixed-precision storage (section 2.3)
+  CVT_F32_BF16, CVT_BF16_F32,
+  // Phase 2: reduction primitives for softmax (section 2.4)
+  VREDSUM, MROWMAX, MROWSUM,
+  // Simulator control (not part of the 24-instruction ISA)
   HALT,
   INVALID
 };
 
 const char *opcodeName(Opcode op);
 Opcode parseOpcode(const std::string &mnemonic);
+
+/// True for MATMUL and its Phase 2 fused variants - the three opcodes that
+/// perform a full 4x4 matrix product. Used by the performance model (below)
+/// to apply one latency figure to all three without triplicating the table.
+bool isMatMulFamily(Opcode op);
 
 enum class RegClass { None, Scalar, Vector, Matrix };
 
@@ -80,6 +103,9 @@ struct Operand {
   int regIndex = -1;       // Register / Memory base
   int64_t immediate = 0;   // Immediate / Memory offset
   int32_t stride = 0;      // Memory: row stride in bytes (0 = contiguous)
+  bool scratchpad = false; // Phase 2: Memory - true selects the scratchpad
+                           // address space (AS=1), false selects DRAM (AS=0),
+                           // docs/memory-hierarchy.md section 3.
   std::string label;       // Label
 
   bool isRegister() const { return kind == Kind::Register; }
@@ -102,12 +128,14 @@ struct MachineState {
   float V[kNumVectorRegs][kVectorLanes] = {};
   float M[kNumMatrixRegs][kTileElems] = {};
 
-  std::vector<uint8_t> memory;
+  std::vector<uint8_t> memory;     // DRAM - Phase 1, unchanged in role
+  std::vector<uint8_t> scratchpad; // Phase 2 - docs/memory-hierarchy.md
   size_t pc = 0;
   bool halted = false;
 
-  explicit MachineState(size_t memoryBytes = kDefaultMemoryBytes)
-      : memory(memoryBytes, 0) {}
+  explicit MachineState(size_t memoryBytes = kDefaultMemoryBytes,
+                        size_t scratchpadBytes = kScratchpadBytes)
+      : memory(memoryBytes, 0), scratchpad(scratchpadBytes, 0) {}
 
   void reset();
 };
@@ -161,6 +189,51 @@ private:
 };
 
 //===----------------------------------------------------------------------===//
+// Performance model - docs/memory-hierarchy.md section 4, docs/
+// isa-extensions.md. Explicitly NOT cycle-accurate: a static per-instruction
+// latency table plus a simple run-length heuristic for transfer/compute
+// overlap, documented in full in MDTSim.cpp next to finalizePerformanceModel.
+//===----------------------------------------------------------------------===//
+
+/// Which of the two categories the overlap heuristic reasons about an
+/// executed instruction belongs to. Control flow, NOP and HALT are `Other`:
+/// they always cost their latency directly and never participate in the
+/// max()-pairing the heuristic applies to adjacent Transfer/Compute runs.
+enum class PerfClass { Transfer, Compute, Other };
+
+PerfClass classifyForPerf(Opcode op);
+
+/// Per-instruction latency, in the model's abstract "cycles". Deliberately
+/// simple and stated as such: DRAM access costs more than scratchpad access
+/// (8 vs 1) specifically so that moving traffic off DRAM is visible in the
+/// estimate at all - the whole point of the memory hierarchy story. See
+/// MDTSim.cpp for the full table and the reasoning behind each figure.
+int instructionLatency(Opcode op, bool scratchpadAccess);
+
+struct PerformanceModel {
+  long long instructionCount = 0;
+  long long bytesMovedDRAM = 0;
+  long long bytesMovedScratchpad = 0;
+
+  /// Sum of every executed instruction's latency - what execution would cost
+  /// with no overlap at all.
+  long long sequentialCycles = 0;
+
+  /// sequentialCycles, but with each maximal adjacent (Transfer-run,
+  /// Compute-run) pair collapsed to max(transferCycles, computeCycles)
+  /// instead of their sum - the analytical stand-in for double buffering
+  /// docs/memory-hierarchy.md section 4 commits to instead of real
+  /// concurrency.
+  long long overlapAwareCycles = 0;
+
+  /// Human-readable report: instruction count, bytes moved (split DRAM vs
+  /// scratchpad), and both cycle estimates side by side. This is the
+  /// direct source of the three columns the Review 2 report's section 8
+  /// ablation study asks for.
+  std::string summary() const;
+};
+
+//===----------------------------------------------------------------------===//
 // Simulator
 //===----------------------------------------------------------------------===//
 
@@ -170,8 +243,10 @@ struct SimulatorOptions {
   bool dumpVector = false;
   bool dumpMatrix = false;
   int dumpMatrixIndex = -1; // -1 = all
+  bool perf = false;        // Phase 2: report the performance model on exit
   size_t maxInstructions = 10000000;
   size_t memoryBytes = kDefaultMemoryBytes;
+  size_t scratchpadBytes = kScratchpadBytes;
 };
 
 struct RuntimeError {
@@ -197,6 +272,9 @@ public:
   size_t executedCount() const { return executed_; }
   const std::vector<RuntimeError> &errors() const { return errors_; }
 
+  /// Phase 2: valid after run() returns. See PerformanceModel above.
+  const PerformanceModel &performanceModel() const { return perf_; }
+
   void dumpScalarRegisters() const;
   void dumpVectorRegisters() const;
   void dumpMatrixRegister(int index) const;
@@ -212,25 +290,65 @@ private:
   bool execVector(const Instruction &inst);
   bool execMatrix(const Instruction &inst);
 
+  /// Phase 2: CVT.F32.BF16 / CVT.BF16.F32 - docs/isa-extensions.md 2.3.
+  bool execConvert(const Instruction &inst);
+
+  /// Phase 2: VREDSUM / MROWMAX / MROWSUM - docs/isa-extensions.md 2.4.
+  bool execReduce(const Instruction &inst);
+
   // Memory access, bounds-checked. Out-of-range access is a runtime error
   // rather than undefined behaviour, so backend bugs surface as diagnostics.
-  bool readWord(size_t address, int32_t &out);
-  bool writeWord(size_t address, int32_t value);
-  bool readFloats(size_t address, float *out, int count, int32_t stride,
-                  int rowLength);
-  bool writeFloats(size_t address, const float *in, int count, int32_t stride,
-                   int rowLength);
+  // Phase 2: `scratchpad` selects which array (state_.memory vs
+  // state_.scratchpad) the address is resolved against - docs/
+  // memory-hierarchy.md section 3's AS bit.
+  bool readWord(size_t address, bool scratchpad, int32_t &out);
+  bool writeWord(size_t address, bool scratchpad, int32_t value);
+  bool readFloats(size_t address, bool scratchpad, float *out, int count,
+                  int32_t stride, int rowLength);
+  bool writeFloats(size_t address, bool scratchpad, const float *in,
+                   int count, int32_t stride, int rowLength);
 
   bool checkRegister(const Operand &operand, RegClass expected,
                      const Instruction &inst);
 
   void runtimeError(const Instruction &inst, const std::string &message);
 
+  /// Phase 2: called once per successfully executed instruction from step(),
+  /// after latency is known, to fold it into the running performance
+  /// totals. `bytesMoved` is 0 for non-memory instructions.
+  void recordPerfInstruction(Opcode op, bool scratchpadAccess,
+                             int bytesMoved);
+
+  /// Phase 2: called once, at the end of run(), to flush the last pending
+  /// run into perf_.overlapAwareCycles. See MDTSim.cpp for why a pending run
+  /// can be left over and what "flushing" means.
+  void finalizePerformanceModel();
+
   MachineState state_;
   std::vector<Instruction> code_;
   SimulatorOptions options_;
   std::vector<RuntimeError> errors_;
   size_t executed_ = 0;
+
+  /// Phase 2: set by execLoad/execStore just before they return success, so
+  /// step() can fold the transfer size into the performance model without
+  /// every memory-instruction call site having to compute it a second time.
+  int lastTransferBytes_ = 0;
+
+  // Phase 2 performance model bookkeeping. recordPerfInstruction builds
+  // perfRuns_ incrementally as a run-length-encoded list (consecutive
+  // instructions of the same PerfClass collapse into one run); the actual
+  // pairing happens once, in finalizePerformanceModel, over the finished
+  // list. This two-phase split exists because pairing must consume each run
+  // exactly once - an earlier single-pass "pair with whatever is currently
+  // pending, then let this instruction become the new pending run" design
+  // was tried and rejected: an interior run ends up compared against BOTH
+  // of its neighbours that way, and gets charged into two overlapping
+  // max()s instead of one, which can make the "overlap-aware" estimate
+  // exceed the sequential one - a self-evidently wrong result for a value
+  // that is supposed to be an upper-bound-reducing estimate.
+  PerformanceModel perf_;
+  std::vector<std::pair<PerfClass, long long>> perfRuns_;
 };
 
 //===----------------------------------------------------------------------===//

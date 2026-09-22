@@ -76,3 +76,15 @@ message(STATUS "")
 message(STATUS "  Build : cmake --build ${CMAKE_BINARY_DIR} -j")
 message(STATUS "  Test  : ctest --test-dir ${CMAKE_BINARY_DIR} --output-on-failure")
 message(STATUS "")
+
+#===----------------------------------------------------------------------===#
+# Phase 2: Tensor IR + fusion pass
+#===----------------------------------------------------------------------===#
+
+add_library(matrixdsl_tensorir STATIC
+            compiler/tensor-ir/TensorIR.cpp
+            compiler/tensor-ir/FusionPass.cpp)
+target_include_directories(matrixdsl_tensorir PUBLIC ${CMAKE_SOURCE_DIR}/compiler)
+
+add_executable(mtxtensorir tools/mtxtensorir/main.cpp)
+target_link_libraries(mtxtensorir PRIVATE matrixdsl_tensorir)

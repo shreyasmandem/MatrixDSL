@@ -2,8 +2,13 @@
 //
 // MatrixDSL - Lexical Analyzer
 //
-// SHARED INTERFACE - FROZEN FOR REVIEW 1
+// SHARED INTERFACE - FROZEN FOR REVIEW 1, EXTENDED FOR REVIEW 2 (PHASE 2)
 // Owner: Vinay A (24BCB0131)
+//
+// Phase 2 adds two keywords: TENSOR (batched declarations, docs/grammar.md)
+// and SOFTMAX (a fourth builtin, alongside MATMUL/TRANSPOSE/RELU). Both are
+// additive - every Phase 1 token type and every existing keyword keeps its
+// exact meaning.
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,6 +31,8 @@ enum class TokenType {
   MATMUL,
   TRANSPOSE,
   RELU,
+  TENSOR,   // Phase 2: batched declaration, e.g. tensor X[8][4][4];
+  SOFTMAX,  // Phase 2: fourth builtin function
 
   // Literals and names
   IDENTIFIER,
@@ -66,8 +73,9 @@ struct Token {
   bool is(TokenType t) const { return type == t; }
   bool isOneOf(TokenType a, TokenType b) const { return is(a) || is(b); }
 
-  /// True for tokens that may begin a statement: `matrix`, `print`, or an
-  /// identifier. Used by the parser for panic-mode error recovery.
+  /// True for tokens that may begin a statement: `matrix`, `tensor`,
+  /// `print`, or an identifier. Used by the parser for panic-mode error
+  /// recovery.
   bool startsStatement() const;
 };
 

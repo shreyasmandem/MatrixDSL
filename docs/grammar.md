@@ -4,6 +4,13 @@ Formal grammar for MatrixDSL, expressed in EBNF. The grammar is deliberately sma
 and free of left recursion in its implemented form so that a hand-written
 recursive-descent parser is practical.
 
+**Phase 2 status: frozen for Review 2.** Section 2 is the Phase 1 grammar,
+unchanged. Section 2a adds exactly the two Phase 2 productions —
+`tensor_decl` (batched declarations) and the `softmax` builtin — per
+`docs/review2/Review2_Report.md` section 2. Nothing else in the grammar
+changes: `matrix_decl`, `assignment`, `print_stmt`, `expression`, `term` and
+`factor` all keep their Phase 1 form exactly.
+
 ## 1. Notation
 
 | Symbol | Meaning |
@@ -47,6 +54,46 @@ matrix_literal ::= "[" row ("," row)* "]"
 
 row            ::= "[" NUMBER ("," NUMBER)* "]"
 ```
+
+## 2a. Phase 2 additions
+
+```ebnf
+statement      ::= matrix_decl
+                 | tensor_decl        (* NEW *)
+                 | assignment
+                 | print_stmt
+
+tensor_decl    ::= "tensor" IDENTIFIER "[" INT "]" "[" INT "]" ("[" INT "]")? ";"
+
+function_call  ::= "matmul"     "(" expression "," expression ")"
+                 | "transpose"  "(" expression ")"
+                 | "relu"       "(" expression ")"
+                 | "softmax"    "(" expression ")"        (* NEW *)
+```
+
+`tensor_decl` accepts either two or three bracketed dimensions. With two, it is
+exactly `matrix_decl`'s shape (batch defaults to 1) — `tensor W[4][4];` and
+`matrix W[4][4];` declare the identical type, and both keywords remain valid so
+that every Phase 1 program still parses without modification. With three, the
+**first** bracketed dimension is the batch count: `tensor X[8][4][4];` declares
+a batch of 8 independent 4x4 matrices.
+
+Both `matrix_decl` and `tensor_decl` construct the same AST node,
+`MatrixDecl` (`compiler/frontend/ast/AST.h`), which now carries a `batch`
+field (default 1). Nothing downstream of parsing needs to know which keyword
+the source used, only the resulting `(batch, rows, cols)` triple.
+
+`softmax` follows the identical one-argument shape as `transpose` and `relu`:
+it is shape-preserving at the grammar and AST level. Its row-max/subtract/
+exp/row-sum/divide decomposition happens later, in the Tensor IR
+canonicalisation step (`docs/tensor-ir.md` section 4) — the parser and AST
+never see that structure.
+
+**Explicitly out of scope for Phase 2** (`docs/review2/Review2_Report.md`
+section 1.4 and section 2.3): batched matrix literals (a `tensor` value is
+populated by assignment from a batch-producing expression, not a literal),
+general N-dimensional shapes beyond the one batch dimension, and dynamic
+(runtime-determined) dimensions anywhere in `tensor_decl`.
 
 ### Note on left recursion
 
@@ -107,10 +154,11 @@ is permitted.
 ## 5. Reserved words
 
 ```
-matrix   print   matmul   transpose   relu
+matrix   tensor   print   matmul   transpose   relu   softmax
 ```
 
-Reserved words may not be used as identifiers.
+Reserved words may not be used as identifiers. `tensor` and `softmax` are the
+two Phase 2 additions (section 2a).
 
 ## 6. Worked derivation
 
@@ -157,6 +205,10 @@ Assignment
 | Ambiguity | None |
 | Backtracking | Not required |
 
-`statement` is distinguishable on its first token alone: `matrix` starts a
-declaration, `print` starts a print statement, and `IDENTIFIER` starts an
-assignment. No backtracking is required anywhere in the grammar.
+`statement` is distinguishable on its first token alone: `matrix` or `tensor`
+starts a declaration, `print` starts a print statement, and `IDENTIFIER` starts
+an assignment. Phase 2's `tensor_decl` needed one additional lookahead
+decision internally — two brackets versus three — but that decision is made
+*after* the keyword has already selected the production, so the grammar
+remains LL(1) with the Phase 2 additions included, not just the Phase 1
+core. No backtracking is required anywhere in the grammar.

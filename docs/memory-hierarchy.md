@@ -5,17 +5,32 @@ Reddy (24BCE0350)**. Status: **frozen for Review 2.**
 
 ## 1. The hierarchy
 
+MDT has never had an instruction that moves data directly between two memory
+locations — Phase 1's `docs/isa.md` §1 states the memory model as "load/store"
+precisely because only `LOAD` and `STORE` touch memory at all, always through a
+register. Phase 2 does not introduce an exception to that: there is no
+DRAM-to-scratchpad memcpy instruction. Every hop below is register-mediated,
+exactly like Phase 1's DRAM access was.
+
 ```
 DRAM   (flat array — Phase 1's only memory, unchanged in size/role)
   |
-  v   SCRATCHLOAD / SCRATCHSTORE  (compiler-inserted pseudo-ops, docs/isa-extensions.md §3)
+  v   LOAD (AS=0) into a register, then SCRATCHSTORE (AS=1) that register out
+  |       - two ordinary instructions, register-mediated, no new operand shape
   |
 Scratchpad / SRAM   (NEW — small, fixed-size, separate address space)
   |
-  v   LOAD / STORE  (unchanged opcodes, now address-space-aware)
+  v   SCRATCHLOAD (AS=1) into a register — the compute-facing load
   |
 Vector / Matrix registers  (unchanged)
 ```
+
+`SCRATCHLOAD`/`SCRATCHSTORE` are not bulk block-copy instructions — see §4.
+Each is exactly one `LOAD`/`STORE` with the address-space bit set (§3),
+carrying a register operand exactly as Phase 1's `LOAD`/`STORE` always did.
+Staging a tile from DRAM into the scratchpad is therefore two instructions
+(an ordinary DRAM `LOAD` into an `M`/`V`/`R` register, then a `SCRATCHSTORE` of
+that same register into scratchpad), not one.
 
 ## 2. Scratchpad sizing
 
@@ -53,20 +68,28 @@ and `RELU` operate only on matrix registers and never touch memory directly, so
 they carry no address-space bit — data must already be in `M0`–`M7` via a prior
 `LOAD`/`SCRATCHLOAD`.
 
-## 4. DMA — modelled synchronously
+## 4. "DMA" here means a register-mediated instruction pair, modelled synchronously
 
-`SCRATCHLOAD`/`SCRATCHSTORE` execute as ordinary, blocking instructions in the
-simulator: the byte range is copied in full before the next instruction runs. No
-concurrency is modelled at execution time. Real double buffering (Pallas'
-"ping/pong" scratchpad pair overlapping transfer and compute — Review 2 report
-§5.3) is real hardware/software-pipelining behaviour this project does not build,
-for the reasons in the report's §1.4 scoping table. Its *benefit* is instead
-estimated analytically by the performance model (`docs/isa-extensions.md`
-companion tooling, implemented in `tools/mdtsim`): for a tiled loop where
-consecutive iterations' transfers and compute do not depend on each other, the
-model reports `max(compute_cycles, dma_cycles)` for that iteration instead of
-their sum, and `compute_cycles + dma_cycles` when they do depend on each other
-(e.g. the very first iteration, which must load before it can compute).
+There is no dedicated DMA engine and no memory-to-memory instruction (§1). What
+Phase 1 accelerator literature calls "DMA" — moving a block between two memory
+tiers without going through the compute datapath — is approximated here by a
+`LOAD`/`SCRATCHSTORE` (or `SCRATCHLOAD`/`STORE`) pair that happens to route
+through a register the compiler never otherwise uses, i.e. the register is
+acting as a transfer buffer rather than a compute operand. Every instruction
+in that pair executes as an ordinary, blocking instruction in the simulator —
+one register's worth of data moves per instruction, in full, before the next
+instruction runs. No concurrency is modelled at execution time.
+
+Real double buffering (Pallas' "ping/pong" scratchpad pair overlapping transfer
+and compute — Review 2 report §5.3) is real hardware/software-pipelining
+behaviour this project does not build, for the reasons in the report's §1.4
+scoping table. Its *benefit* is instead estimated analytically by the
+performance model (`docs/isa-extensions.md` companion tooling, implemented in
+`tools/mdtsim`): for a tiled loop where consecutive iterations' transfer
+instructions and compute instructions do not depend on each other, the model
+reports `max(compute_cycles, transfer_cycles)` for that iteration instead of
+their sum, and `compute_cycles + transfer_cycles` when they do depend on each
+other (e.g. the very first iteration, which must load before it can compute).
 
 ## 5. Who decides what
 
@@ -92,18 +115,21 @@ register-level loop:
 for b in 0 .. batch:
     for i in 0 .. M/4:
         for j in 0 .. N/4:
-            if A-tile(b,i,k) not scratchpad-resident: SCRATCHLOAD it
-            if B-tile(b,k,j) not scratchpad-resident: SCRATCHSTORE it
+            if A-tile(b,i,k) not scratchpad-resident:
+                LOAD tile from DRAM into Mtmp ; SCRATCHSTORE Mtmp to scratchpad
+            if B-tile(b,k,j) not scratchpad-resident:
+                LOAD tile from DRAM into Mtmp ; SCRATCHSTORE Mtmp to scratchpad
             for k in 0 .. K/4:
-                LOAD the A/B tiles from scratchpad into M-registers
+                SCRATCHLOAD the A/B tiles from scratchpad into M-registers
                 MATMUL / MATMULACC accumulate
-            STORE result tile back through scratchpad, then SCRATCHSTORE to DRAM
+            SCRATCHSTORE the result tile, then LOAD it back and STORE to DRAM
 ```
 
 Register-level tiling (at most 3 tiles live in `M0`–`M7` at once, per Phase 1's
 risk register R6) is unchanged. The new step is purely the DRAM<->scratchpad
-staging, which is what lets the ablation study (Review 2 report §8) measure a
-"tiling only" configuration distinct from "no tiling."
+staging (two register-mediated instructions per tile, §1), which is what lets
+the ablation study (Review 2 report §8) measure a "tiling only" configuration
+distinct from "no tiling."
 
 ## 7. Correctness discipline
 

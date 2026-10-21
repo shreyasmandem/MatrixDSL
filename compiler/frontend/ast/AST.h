@@ -2,18 +2,23 @@
 //
 // MatrixDSL - Abstract Syntax Tree
 //
-// SHARED INTERFACE - FROZEN FOR REVIEW 1
+// SHARED INTERFACE - FROZEN FOR REVIEW 1, EXTENDED FOR REVIEW 2 (PHASE 2)
 //
 // This header is the contract between all four compiler modules:
 //
 //   Vinay   (parser)   constructs these nodes
 //   Parth   (semantic) walks them and fills in `resultType`
-//   Kandi   (irgen)    walks them and emits LLVM IR
+//   Kandi   (irgen)    walks them and lowers to Tensor IR / LLVM IR
 //   Shreyas (backend)  consumes the IR that results
 //
 // Changing anything here requires agreement from all four members, because
 // every module compiles against it. Downstream modules build and test against
 // hand-constructed AST fixtures before the parser is finished.
+//
+// Phase 2 adds exactly two things, both additive: a batch field on
+// MatrixDecl (default 1, so every Phase 1 call site is unaffected) and one
+// new BuiltinFunc, Softmax. See docs/review2/Review2_Report.md section 2 for
+// why the language extension is scoped this narrowly.
 //
 //===----------------------------------------------------------------------===//
 
@@ -69,7 +74,11 @@ enum class BinaryOp { Add, Sub, Mul };
 
 /// Built-in matrix functions. The language has no user-defined functions, so
 /// this enumeration is closed.
-enum class BuiltinFunc { MatMul, Transpose, Relu };
+///
+/// Phase 2 adds Softmax. It is shape-preserving like Relu at the AST/semantic
+/// level; its row-max/exp/row-sum/divide decomposition happens later, in the
+/// Tensor IR canonicalisation step (docs/tensor-ir.md section 4), not here.
+enum class BuiltinFunc { MatMul, Transpose, Relu, Softmax };
 
 const char *toString(BinaryOp op);
 const char *toString(BuiltinFunc fn);
@@ -200,18 +209,32 @@ public:
 
 using StmtPtr = std::unique_ptr<Stmt>;
 
-/// `matrix A[4][4];`
+/// `matrix A[4][4];` (batch = 1, Phase 1 form, unchanged)
+/// `tensor X[8][4][4];` (batch = 8, Phase 2 form)
+///
+/// One AST node represents both surface forms - the parser distinguishes
+/// `matrix` (always batch 1) from `tensor` (batch is the leading dimension
+/// when three are given, else 1) at parse time; nothing downstream needs to
+/// know which keyword was used, only the resulting shape.
 class MatrixDecl : public Stmt {
 public:
+  /// Phase 1 constructor - unchanged signature and behaviour, batch = 1.
   MatrixDecl(std::string name, int rows, int cols, SourceLocation loc = {})
-      : Stmt(NodeKind::MatrixDecl, loc), name(std::move(name)), rows(rows),
-        cols(cols) {}
+      : Stmt(NodeKind::MatrixDecl, loc), name(std::move(name)), batch(1),
+        rows(rows), cols(cols) {}
+
+  /// Phase 2 constructor - explicit batch.
+  MatrixDecl(std::string name, int batch, int rows, int cols,
+             SourceLocation loc = {})
+      : Stmt(NodeKind::MatrixDecl, loc), name(std::move(name)), batch(batch),
+        rows(rows), cols(cols) {}
 
   std::string name;
+  int batch;
   int rows;
   int cols;
 
-  MatrixType declaredType() const { return MatrixType(rows, cols); }
+  MatrixType declaredType() const { return MatrixType(batch, rows, cols); }
 
   void accept(ASTVisitor &visitor) override;
 };

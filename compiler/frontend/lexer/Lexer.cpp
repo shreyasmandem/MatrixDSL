@@ -29,6 +29,8 @@ const char *tokenTypeToString(TokenType type) {
   case TokenType::MATMUL:      return "MATMUL";
   case TokenType::TRANSPOSE:   return "TRANSPOSE";
   case TokenType::RELU:        return "RELU";
+  case TokenType::TENSOR:      return "TENSOR";
+  case TokenType::SOFTMAX:     return "SOFTMAX";
   case TokenType::IDENTIFIER:  return "IDENTIFIER";
   case TokenType::INT:         return "INT";
   case TokenType::NUMBER:      return "NUMBER";
@@ -73,6 +75,8 @@ const KeywordEntry kKeywords[] = {
     {"matmul",    TokenType::MATMUL},
     {"transpose", TokenType::TRANSPOSE},
     {"relu",      TokenType::RELU},
+    {"tensor",    TokenType::TENSOR},   // Phase 2 keyword, wired in Phase 3
+    {"softmax",   TokenType::SOFTMAX},  // Phase 2 builtin, wired in Phase 3
 };
 
 TokenType keywordOrIdentifier(const std::string &text) {

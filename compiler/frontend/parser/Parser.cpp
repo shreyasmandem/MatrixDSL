@@ -359,12 +359,15 @@ std::vector<double> Parser::parseRow() {
 
   if (!check(TokenType::RBRACKET)) {
     for (;;) {
+      // Phase 3: a literal element may carry a leading minus sign.
+      const bool negative = match(TokenType::MINUS);
       const Token tok = current();
       if (!isNumericToken(tok)) {
         recordError("expected a number in a matrix literal row", "a number");
         break;
       }
-      values.push_back(std::atof(tok.text.c_str()));
+      const double value = std::atof(tok.text.c_str());
+      values.push_back(negative ? -value : value);
       advance();
 
       if (!match(TokenType::COMMA))

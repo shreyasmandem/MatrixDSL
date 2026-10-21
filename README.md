@@ -162,3 +162,28 @@ construct. The parser implementation lands in Review 2.
 
 Compiling `mtxlex` and running the twelve lexer tests is the first task before the
 Review 1 demonstration.
+
+---
+
+## Phase 3 (Final Review)
+
+| Item | Status |
+|---|---|
+| `matrixdslc`, the end-to-end compiler driver (`tools/mtxc/`) | **Implemented**: `--emit-tokens/-ast/-tir/-llvm`, `-S`, `--run --perf --verify`, `--stats`, `--no-fusion`, `--no-tiling` |
+| `Pipeline`, shared by every tool (`compiler/driver/`) | **Implemented** |
+| Caret diagnostics (`compiler/frontend/Diagnostics.*`) | **Implemented** |
+| Lexer: `tensor` / `softmax` keywords wired in | **Fixed**: the Phase 2 parser expected them, but the lexer never produced them |
+| Parser: negative literal elements | **Implemented** |
+| `AST.h` / `Lexer.h` synced with the frozen Phase 2 headers | **Fixed** |
+
+The driver links the whole team's pipeline, so it builds from the integrated
+tree on `main`:
+
+```bash
+git checkout main
+cmake -S . -B build && cmake --build build -j && ctest --test-dir build   # 70/70
+build/bin/matrixdslc examples/ai_layer.mtx --run --perf --verify
+```
+
+`mtxlex` and `mtxparse` still build standalone from this branch. Details are in
+[`docs/review3/vinay-contribution.md`](docs/review3/vinay-contribution.md).

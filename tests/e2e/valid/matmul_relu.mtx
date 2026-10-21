@@ -1,0 +1,11 @@
+// MatMul -> Relu fuses to FusedMatMulRelu (MATMULRELU when k = 1 tile)
+matrix X[4][4];
+matrix W[4][4];
+matrix Y[4][4];
+matrix Z[8][8];
+matrix V[8][8];
+matrix U[8][8];
+Y = relu(matmul(X, W));
+U = relu(matmul(Z, V));
+print(Y);
+print(U);

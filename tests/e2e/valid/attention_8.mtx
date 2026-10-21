@@ -1,0 +1,7 @@
+// Attention on 8 tokens: transpose, matmul, scale, softmax, matmul
+matrix Q[8][8];
+matrix K[8][8];
+matrix V[8][8];
+matrix O[8][8];
+O = matmul(softmax(matmul(Q, transpose(K)) * 0.5), V);
+print(O);

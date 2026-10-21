@@ -175,3 +175,26 @@ assert on the diagnostic kind rather than merely on a non-zero exit status.
 **Not yet compiled** — no C++ toolchain was installed on the machine used to author
 this. Building `mtxcheck` and running the checks is the first task before the Review 1
 demonstration.
+
+---
+
+## Phase 3 (Final Review)
+
+| Item | Status |
+|---|---|
+| `mtxverify`, the differential tester (`tools/mtxverify/`) | **Implemented**: 4 configurations × MDT simulator vs the reference interpreter |
+| End-to-end corpus (`tests/e2e/`) | **11 positive + 6 negative programs**; 100/100 compiled runs verified, 6/6 rejected |
+| Symbol table: `popScope` keeps declaration order consistent | **Fixed** (caught by `mtxcheck symbols`) |
+| `tests/TestRunner.cpp`: Windows `cmd.exe` quoting | **Fixed** |
+
+`mtxverify` links the whole team's pipeline, so it builds from the integrated
+tree on `main`:
+
+```bash
+git checkout main
+cmake -S . -B build && cmake --build build -j && ctest --test-dir build   # 70/70
+build/bin/mtxverify tests/e2e examples benchmarks/workloads
+```
+
+`mtxcheck` still builds standalone from this branch. Details are in
+[`docs/review3/parth-contribution.md`](docs/review3/parth-contribution.md).

@@ -1,0 +1,9 @@
+// Scalar multiplication from either side (MATMUL against s*I)
+matrix A[4][4];
+matrix L[4][4];
+matrix R[4][4];
+A = [[1, -2, 3, -4], [0.5, 0.25, -0.75, 1], [2, 2, 2, 2], [-1, -1, -1, -1]];
+L = 2.5 * A;
+R = A * 0.5;
+print(L);
+print(R);

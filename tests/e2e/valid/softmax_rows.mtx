@@ -1,0 +1,6 @@
+// Row-wise softmax of a 3x6 matrix (padding columns must not leak in)
+matrix S[3][6];
+matrix P[3][6];
+S = [[1, 2, 3, 4, 5, 6], [0, 0, 0, 0, 0, 0], [-3, 7, 0.5, 2, -1, 4]];
+P = softmax(S);
+print(P);

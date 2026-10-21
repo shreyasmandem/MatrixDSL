@@ -1,0 +1,6 @@
+// expect: error
+// expect-error: matmul requires A.cols == B.rows
+matrix A[4][3];
+matrix B[4][4];
+matrix C[4][4];
+C = matmul(A, B);

@@ -1,0 +1,7 @@
+// Batch 4 times a shared batch-1 weight, plus a per-batch bias
+tensor X[4][8][8];
+matrix W[8][8];
+tensor B[4][8][8];
+tensor Y[4][8][8];
+Y = matmul(X, W) + B;
+print(Y);

@@ -12,6 +12,8 @@
 
 #include "SymbolTable.h"
 
+#include <iterator>
+
 namespace matrixdsl {
 
 void SymbolTable::pushScope() { scopes_.emplace_back(); }
@@ -19,8 +21,19 @@ void SymbolTable::pushScope() { scopes_.emplace_back(); }
 void SymbolTable::popScope() {
   // Never pop the global scope - doing so would leave the table in a state
   // where declare() has nowhere to write.
-  if (scopes_.size() > 1)
-    scopes_.pop_back();
+  if (scopes_.size() <= 1)
+    return;
+  // Phase 3 fix: forget the popped scope's names in declarationOrder_ too
+  // (latest occurrence of each), or a shadowing declaration would outlive
+  // its scope and allSymbols() would list the shadowed name twice.
+  for (const auto &entry : scopes_.back()) {
+    for (auto it = declarationOrder_.rbegin(); it != declarationOrder_.rend(); ++it)
+      if (*it == entry.first) {
+        declarationOrder_.erase(std::next(it).base());
+        break;
+      }
+  }
+  scopes_.pop_back();
 }
 
 bool SymbolTable::declare(const std::string &name, MatrixType type, int line,

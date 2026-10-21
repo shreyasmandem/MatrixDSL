@@ -1,0 +1,6 @@
+// expect: error
+// expect-error: cannot add or subtract matrices of shape
+matrix A[4][4];
+matrix B[4][8];
+matrix C[4][4];
+C = A + B;

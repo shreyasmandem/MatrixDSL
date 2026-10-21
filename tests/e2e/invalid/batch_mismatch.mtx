@@ -1,0 +1,6 @@
+// expect: error
+// expect-error: cannot multiply matrix
+tensor X[8][4][4];
+tensor W[4][4][4];
+tensor Y[8][4][4];
+Y = matmul(X, W);

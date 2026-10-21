@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MatrixDSL Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;1,6..72,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">Matrix<i>DSL</i> <span>Lab</span></div>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-view="compare" aria-selected="true">Traditional vs MatrixDSL</button>
+    <button class="tab" role="tab" data-view="suite" aria-selected="false">Ablation suite</button>
+    <button class="tab" role="tab" data-view="inside" aria-selected="false">Inside the compiler</button>
+  </nav>
+  <div class="status" id="status"><i></i><span>connecting…</span></div>
+</header>
+
+<div class="offline" id="offline" hidden>
+  <h2>The compiler backend isn't running</h2>
+  <p>This dashboard drives the real MatrixDSL compiler through a local server. Start it from the repository root, then press <b>Retry</b>:</p>
+  <pre>cmake -S . -B build &amp;&amp; cmake --build build -j
+build/bin/mtxserve</pre>
+  <p class="muted">It listens on <code>127.0.0.1:8765</code> only. Nothing leaves your machine.</p>
+  <button class="btn pri" id="retry" type="button">Retry</button>
+</div>
+
+<main id="app">
+  <!-- ======================= COMPARE ======================= -->
+  <section class="view" id="view-compare">
+    <aside class="editor">
+      <label class="lbl" for="program">Program</label>
+      <select id="program"></select>
+      <label class="lbl" for="source">Source <span class="muted">(Ctrl+Enter to run)</span></label>
+      <textarea id="source" spellcheck="false" wrap="off"></textarea>
+      <button class="btn pri big" id="run" type="button">Compile &amp; simulate ▸</button>
+      <pre class="diag" id="diag" hidden></pre>
+      <p class="note">Each run compiles your program four times with the real pipeline, executes every version on the MDT simulator, and checks every output value against the reference interpreter.</p>
+    </aside>
+
+    <div class="stage">
+      <div class="verdict" id="verdict">Pick a program and press <b>Compile &amp; simulate</b>.</div>
+
+      <div class="cards">
+        <article class="card scalar">
+          <header><span class="tag">analytic lower bound</span><h3>Scalar core</h3><p>One multiply-accumulate per cycle, no matrix unit</p></header>
+          <div class="big" id="c-scalar">-</div><div class="unit">cycles, at least</div>
+          <dl><div><dt>Multiply-accumulates</dt><dd id="c-macs">-</dd></div></dl>
+        </article>
+        <article class="card trad">
+          <header><span class="tag">executed on MDT</span><h3>Traditional compile</h3><p>Matrix unit, but no fusion and every tile fetched from DRAM</p></header>
+          <div class="big" id="c-base">-</div><div class="unit">cycles</div>
+          <dl>
+            <div><dt>DRAM traffic</dt><dd id="c-base-dram">-</dd></div>
+            <div><dt>Instructions</dt><dd id="c-base-instr">-</dd></div>
+            <div><dt>Output</dt><dd id="c-base-ok">-</dd></div>
+          </dl>
+        </article>
+        <article class="card ours">
+          <header><span class="tag">executed on MDT</span><h3>MatrixDSL</h3><p>Operator fusion + scratchpad tiling</p></header>
+          <div class="big" id="c-ours">-</div><div class="unit">cycles</div>
+          <dl>
+            <div><dt>DRAM traffic</dt><dd id="c-ours-dram">-</dd></div>
+            <div><dt>Instructions</dt><dd id="c-ours-instr">-</dd></div>
+            <div><dt>Output</dt><dd id="c-ours-ok">-</dd></div>
+          </dl>
+        </article>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head"><h4>The race</h4><button class="btn" id="race" type="button" disabled>Replay ▸</button></div>
+        <p class="muted small">Bar length and speed are proportional to modelled cycles. The longest run takes 6 seconds.</p>
+        <div class="race" id="raceRows"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h4>Where the time goes</h4>
+          <div class="key"><span><i class="k-t"></i>memory transfer</span><span><i class="k-c"></i>compute</span><span><i class="k-o"></i>runtime call</span></div></div>
+        <p class="muted small">The simulator's execution trace on a shared cycle axis. The traditional compile is dominated by 8-cycle DRAM transfers; MatrixDSL replaces most of them with 1-cycle scratchpad reads and removes the intermediates entirely.</p>
+        <div class="tl"><span class="tl-l">Traditional</span><canvas id="tl-base" height="34"></canvas></div>
+        <div class="tl"><span class="tl-l">MatrixDSL</span><canvas id="tl-ours" height="34"></canvas></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h4>All four configurations</h4></div>
+        <div class="tblwrap"><table id="cfgTable"></table></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h4>Program output</h4><span class="muted small" id="outNote"></span></div>
+        <div class="outputs" id="outputs"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ======================= SUITE ======================= -->
+  <section class="view" id="view-suite" hidden>
+    <div class="suite-head">
+      <div><h2>Fusion × scratchpad tiling</h2>
+      <p class="muted">Eight workloads, four configurations, all compiled, executed and verified live by the backend.</p></div>
+      <button class="btn pri big" id="suiteRun" type="button">Run the ablation study ▸</button>
+    </div>
+    <div class="geo" id="geo"></div>
+    <div class="chart" id="suiteChart"></div>
+    <div class="tblwrap"><table id="suiteTable"></table></div>
+  </section>
+
+  <!-- ======================= INSIDE ======================= -->
+  <section class="view" id="view-inside" hidden>
+    <p class="muted">The program from the first tab, at every stage the backend keeps.</p>
+    <div class="cols2">
+      <div class="panel"><h4>Tensor IR after lowering</h4><pre class="code" id="irBefore"></pre></div>
+      <div class="panel"><h4>Tensor IR after fusion, DCE and tiling</h4><pre class="code" id="irAfter"></pre></div>
+    </div>
+    <div class="cols2">
+      <div class="panel"><h4>MDT assembly: traditional <span class="muted small" id="asmBaseN"></span></h4><pre class="code tall" id="asmBase"></pre></div>
+      <div class="panel"><h4>MDT assembly: MatrixDSL <span class="muted small" id="asmOursN"></span></h4><pre class="code tall" id="asmOurs"></pre></div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">MatrixDSL · Team 13 · BCSE307P Compiler Design. Cycle counts come from MDT's analytical performance model, not cycle-accurate hardware.</footer>
+<script src="dashboard.js"></script>
+</body>
+</html>

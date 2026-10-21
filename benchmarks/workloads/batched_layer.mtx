@@ -1,0 +1,8 @@
+// A layer applied to a batch of 8 inputs with shared weights and bias:
+// W and B are batch-1 and broadcast across the batch (Phase 2 rule).
+tensor X[8][16][16];
+matrix W[16][16];
+matrix B[16][16];
+tensor Y[8][16][16];
+Y = relu(matmul(X, W) + B);
+print(Y);

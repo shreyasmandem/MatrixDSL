@@ -1,0 +1,7 @@
+// One fully-connected layer on a single 4x4 tile: Y = relu(X*W + B)
+matrix X[4][4];
+matrix W[4][4];
+matrix B[4][4];
+matrix Y[4][4];
+Y = relu(matmul(X, W) + B);
+print(Y);

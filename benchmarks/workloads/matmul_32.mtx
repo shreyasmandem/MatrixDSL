@@ -1,0 +1,6 @@
+// Square matrix multiply, 32x32: the tiling stress test
+matrix A[32][32];
+matrix B[32][32];
+matrix C[32][32];
+C = matmul(A, B);
+print(C);

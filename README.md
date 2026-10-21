@@ -173,3 +173,28 @@ first thing done with it was building and running everything already on this
 branch — which found and fixed two real bugs in the Phase 1 assembler (see
 `docs/review2/shreyas-contribution.md` §2). Every test below, Phase 1 and Phase 2
 alike, is now verified, not merely written.
+
+---
+
+## Phase 3 (Final Review)
+
+| Item | Status |
+|---|---|
+| MDT code generator, Tensor IR → MDT (`compiler/backend/`) | **Implemented**: every Tensor IR op, zero-padded layout, scratchpad lowering, identity-tile add/sub |
+| Simulator runtime ABI, `mdt_print` / `mdt_softmax` (`docs/runtime-abi.md`) | **Implemented** |
+| Ablation study (`tools/mtxbench`) | **Measured**: geo-mean 2.19x faster, 3.79x less DRAM, 32/32 runs verified |
+| MatrixDSL Lab: `tools/mtxserve` + Chrome extension (`extension/`) | **Implemented** |
+
+The code generator, `mtxbench` and `mtxserve` link against the whole team's
+pipeline, so they build from the integrated tree on `main`:
+
+```bash
+git checkout main
+cmake -S . -B build && cmake --build build -j && ctest --test-dir build   # 70/70
+build/bin/mtxbench benchmarks/workloads
+build/bin/mtxserve            # MatrixDSL Lab on http://127.0.0.1:8765/
+```
+
+`mdtsim` itself still builds standalone from this branch. Details are in
+[`docs/review3/shreyas-contribution.md`](docs/review3/shreyas-contribution.md),
+and the measured results are in [`docs/review3/results.md`](docs/review3/results.md).

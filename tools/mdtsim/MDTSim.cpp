@@ -8,6 +8,8 @@
 
 #include "MDTSim.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -40,6 +42,13 @@ void Simulator::load(const std::vector<Instruction> &code,
                      const std::vector<uint8_t> &data) {
   code_ = code;
   state_.reset();
+  prints_.clear();
+
+  // Phase 3: compiler-generated programs can carry large data sections
+  // (a 256x256 FP32 matrix is 256 KiB). Grow DRAM so the image always fits,
+  // with 1 MiB of headroom for the stack.
+  if (data.size() + (1u << 20) > state_.memory.size())
+    state_.memory.assign(data.size() + (1u << 20), 0);
 
   if (!data.empty()) {
     const size_t n =
@@ -319,6 +328,8 @@ bool Simulator::execBranch(const Instruction &inst, bool &branched) {
   }
 
   case Opcode::CALL: {
+    if (inst.dst.immediate < 0) // Phase 3: host runtime function
+      return execRuntimeCall(static_cast<int>(-1 - inst.dst.immediate), inst);
     const size_t target = static_cast<size_t>(inst.dst.immediate);
     if (target >= code_.size()) {
       runtimeError(inst, "call target out of range");
@@ -872,6 +883,133 @@ void Simulator::dumpMatrixRegister(int index) const {
 void Simulator::dumpAllMatrixRegisters() const {
   for (int i = 0; i < kNumMatrixRegs; ++i)
     dumpMatrixRegister(i);
+}
+
+//===----------------------------------------------------------------------===//
+// Phase 3: runtime support (docs/runtime-abi.md)
+//
+// Two host functions stand behind `CALL mdt_print` and `CALL mdt_softmax`.
+// They are the "runtime support" docs/isa-extensions.md section 5 reserves
+// for exp: MDT deliberately has no transcendental instruction, and print is
+// host I/O. Both read their arguments from fixed scalar registers, the same
+// way a real ABI passes arguments, so the generated code pays for setting
+// them up with ordinary ADD instructions.
+//===----------------------------------------------------------------------===//
+
+int runtimeFunctionId(const std::string &name) {
+  if (name == "mdt_print")
+    return static_cast<int>(RuntimeFn::Print);
+  if (name == "mdt_softmax")
+    return static_cast<int>(RuntimeFn::Softmax);
+  return -1;
+}
+
+void Simulator::recordRuntimeCost(long long cycles, long long dramBytes) {
+  perf_.sequentialCycles += cycles;
+  perf_.bytesMovedDRAM += dramBytes;
+  if (!perfRuns_.empty() && perfRuns_.back().first == PerfClass::Other)
+    perfRuns_.back().second += cycles;
+  else
+    perfRuns_.emplace_back(PerfClass::Other, cycles);
+}
+
+bool Simulator::execRuntimeCall(int id, const Instruction &inst) {
+  const int32_t *R = state_.R;
+  const auto padded = [](int n) { return (n + kTileDim - 1) / kTileDim * kTileDim; };
+  const auto inBounds = [&](long long addr, long long bytes) {
+    return addr >= 0 && bytes >= 0 &&
+           static_cast<size_t>(addr + bytes) <= state_.memory.size();
+  };
+  const auto floatAt = [&](size_t addr) {
+    float f;
+    std::memcpy(&f, state_.memory.data() + addr, 4);
+    return f;
+  };
+
+  if (id == static_cast<int>(RuntimeFn::Print)) {
+    // R1 = address, R2 = batch, R3 = rows, R4 = cols, R5 = row stride (bytes),
+    // R6 = print id. Matrices are row-major with tile-padded rows and columns.
+    PrintRecord rec;
+    rec.batch = R[2];
+    rec.rows = R[3];
+    rec.cols = R[4];
+    const long long stride = R[5];
+    const long long batchBytes = padded(rec.rows) * stride;
+    const auto name = printNames_.find(R[6]);
+    rec.name = name != printNames_.end() ? name->second
+                                         : "print#" + std::to_string(R[6]);
+    if (rec.batch < 1 || rec.rows < 1 || rec.cols < 1 ||
+        !inBounds(R[1], rec.batch * batchBytes)) {
+      runtimeError(inst, "mdt_print: bad arguments");
+      return false;
+    }
+    for (int b = 0; b < rec.batch; ++b)
+      for (int i = 0; i < rec.rows; ++i)
+        for (int j = 0; j < rec.cols; ++j)
+          rec.values.push_back(floatAt(R[1] + b * batchBytes + i * stride + j * 4));
+
+    if (options_.echoPrints) {
+      std::printf("%s = (%s%dx%d)\n", rec.name.c_str(),
+                  rec.batch > 1 ? (std::to_string(rec.batch) + "x").c_str() : "",
+                  rec.rows, rec.cols);
+      size_t k = 0;
+      for (int b = 0; b < rec.batch; ++b) {
+        if (rec.batch > 1)
+          std::printf("  [batch %d]\n", b);
+        for (int i = 0; i < rec.rows; ++i) {
+          std::printf("  [");
+          for (int j = 0; j < rec.cols; ++j)
+            std::printf(" %9.4f", rec.values[k++]);
+          std::printf(" ]\n");
+        }
+      }
+    }
+    prints_.push_back(std::move(rec));
+    return true; // host I/O: no modelled cycles beyond the CALL itself
+  }
+
+  if (id == static_cast<int>(RuntimeFn::Softmax)) {
+    // R1 = source, R2 = destination, R3 = batch, R4 = rows, R5 = cols,
+    // R6 = row stride (bytes). Row-wise, numerically stable:
+    //   y_j = exp(x_j - max(x)) / sum_k exp(x_k - max(x))
+    // Padding rows and columns of the destination are written as zero so the
+    // "padding is always zero" invariant the code generator relies on holds.
+    const int batch = R[3], rows = R[4], cols = R[5];
+    const long long stride = R[6];
+    const long long batchBytes = padded(rows) * stride;
+    if (batch < 1 || rows < 1 || cols < 1 || stride < cols * 4 ||
+        !inBounds(R[1], batch * batchBytes) || !inBounds(R[2], batch * batchBytes)) {
+      runtimeError(inst, "mdt_softmax: bad arguments");
+      return false;
+    }
+    std::vector<float> row(static_cast<size_t>(stride / 4));
+    for (int b = 0; b < batch; ++b) {
+      for (int i = 0; i < padded(rows); ++i) {
+        const size_t src = R[1] + b * batchBytes + i * stride;
+        const size_t dst = R[2] + b * batchBytes + i * stride;
+        std::fill(row.begin(), row.end(), 0.0f);
+        if (i < rows) {
+          float mx = floatAt(src);
+          for (int j = 1; j < cols; ++j)
+            mx = std::max(mx, floatAt(src + j * 4));
+          float sum = 0.0f;
+          for (int j = 0; j < cols; ++j) {
+            row[j] = std::exp(floatAt(src + j * 4) - mx);
+            sum += row[j];
+          }
+          for (int j = 0; j < cols; ++j)
+            row[j] = row[j] / sum;
+        }
+        std::memcpy(state_.memory.data() + dst, row.data(), row.size() * 4);
+      }
+    }
+    const long long elems = static_cast<long long>(batch) * rows * cols;
+    recordRuntimeCost(elems * kSoftmaxCyclesPerElement, elems * 8);
+    return true;
+  }
+
+  runtimeError(inst, "unknown runtime function id " + std::to_string(id));
+  return false;
 }
 
 } // namespace mdt

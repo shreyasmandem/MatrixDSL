@@ -146,6 +146,7 @@ int main(int argc, char **argv) {
   //=== Execute ===//
 
   mdt::Simulator sim(options);
+  sim.setPrintNames(assembler.printNames()); // Phase 3: name print() output
   sim.load(code, assembler.dataSection());
 
   if (options.trace)

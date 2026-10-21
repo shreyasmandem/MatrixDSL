@@ -1,0 +1,13 @@
+:root{--paper:#F4F2EB;--ink:#17201A;--muted:#67716A;--green:#1D4B37;--line:#DBD7CB;--bad:#A33A2A;--code:#18201B}
+@media (prefers-color-scheme: dark){:root{--paper:#111512;--ink:#E5EAE4;--muted:#8C978F;--green:#8CCBA7;--line:#2B332D;--bad:#EE9A86;--code:#0C100D}}
+body{margin:0;width:300px;padding:16px;background:var(--paper);color:var(--ink);font:13px/1.5 system-ui,"Segoe UI",sans-serif}
+.head{display:flex;gap:10px;align-items:center}
+.head b{display:block;font-size:15px}.head span{font-size:11.5px;color:var(--muted)}
+.status{display:flex;gap:8px;align-items:center;margin:14px 0}
+.status i{width:9px;height:9px;border-radius:50%;background:#999;flex:none}
+.status.on i{background:#3fae6a}.status.off i{background:var(--bad)}
+button{width:100%;padding:10px;border-radius:999px;border:1px solid var(--green);background:var(--green);color:var(--paper);font:600 13.5px system-ui,sans-serif;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border-color:var(--line);margin-top:8px}
+pre{background:var(--code);color:#D9E2DA;padding:8px 10px;border-radius:6px;font:12px Consolas,monospace}
+.foot{font-size:11px;color:var(--muted);margin:12px 0 0}
+code{font-family:Consolas,monospace}

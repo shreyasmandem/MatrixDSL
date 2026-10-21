@@ -1,0 +1,11 @@
+// Two-layer perceptron, 16 features: Y = (relu(X*W1 + B1)) * W2 + B2
+matrix X[16][16];
+matrix W1[16][16];
+matrix B1[16][16];
+matrix W2[16][16];
+matrix B2[16][16];
+matrix H[16][16];
+matrix Y[16][16];
+H = relu(matmul(X, W1) + B1);
+Y = matmul(H, W2) + B2;
+print(Y);

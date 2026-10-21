@@ -168,6 +168,11 @@ public:
   const std::unordered_map<std::string, size_t> &labels() const {
     return labels_;
   }
+  /// Phase 3: `.printname <id> <name>` directives - lets mdt_print report a
+  /// source-level variable name instead of a bare id.
+  const std::unordered_map<int, std::string> &printNames() const {
+    return printNames_;
+  }
 
 private:
   bool firstPass(const std::string &source);
@@ -186,6 +191,7 @@ private:
   std::unordered_map<std::string, size_t> dataLabels_; // label -> byte address
   std::vector<AssemblyError> errors_;
   bool inDataSection_ = false;
+  std::unordered_map<int, std::string> printNames_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -199,6 +205,20 @@ private:
 /// executed instruction belongs to. Control flow, NOP and HALT are `Other`:
 /// they always cost their latency directly and never participate in the
 /// max()-pairing the heuristic applies to adjacent Transfer/Compute runs.
+/// Phase 3 runtime calls: `CALL mdt_print` / `CALL mdt_softmax` resolve to
+/// these negative ids and run as host functions inside the simulator - the
+/// "runtime support" docs/isa-extensions.md section 5 reserves for exp.
+enum class RuntimeFn { Print = 0, Softmax = 1 };
+int runtimeFunctionId(const std::string &name); // -1 if not a runtime name
+constexpr int kSoftmaxCyclesPerElement = 4;      // modelled exp + divide
+
+/// One `print(X)` observed at run time: a batch of rows x cols matrices.
+struct PrintRecord {
+  std::string name;
+  int batch = 1, rows = 0, cols = 0;
+  std::vector<float> values; // batch * rows * cols, row-major, padding removed
+};
+
 enum class PerfClass { Transfer, Compute, Other };
 
 PerfClass classifyForPerf(Opcode op);
@@ -244,7 +264,8 @@ struct SimulatorOptions {
   bool dumpMatrix = false;
   int dumpMatrixIndex = -1; // -1 = all
   bool perf = false;        // Phase 2: report the performance model on exit
-  size_t maxInstructions = 10000000;
+  size_t maxInstructions = 50000000;
+  bool echoPrints = true;   // Phase 3: mdt_print writes to stdout as well
   size_t memoryBytes = kDefaultMemoryBytes;
   size_t scratchpadBytes = kScratchpadBytes;
 };
@@ -274,6 +295,17 @@ public:
 
   /// Phase 2: valid after run() returns. See PerformanceModel above.
   const PerformanceModel &performanceModel() const { return perf_; }
+
+  /// Phase 3 runtime ABI (docs/isa-extensions.md section 5, docs/runtime-abi.md).
+  void setPrintNames(const std::unordered_map<int, std::string> &names) {
+    printNames_ = names;
+  }
+  const std::vector<PrintRecord> &prints() const { return prints_; }
+  /// Phase 3: the run-length-encoded Transfer/Compute/Other trace behind the
+  /// overlap-aware estimate - what the dashboard draws as a timeline.
+  const std::vector<std::pair<PerfClass, long long>> &perfRuns() const {
+    return perfRuns_;
+  }
 
   void dumpScalarRegisters() const;
   void dumpVectorRegisters() const;
@@ -349,6 +381,10 @@ private:
   // that is supposed to be an upper-bound-reducing estimate.
   PerformanceModel perf_;
   std::vector<std::pair<PerfClass, long long>> perfRuns_;
+  std::unordered_map<int, std::string> printNames_;
+  std::vector<PrintRecord> prints_;
+  bool execRuntimeCall(int id, const Instruction &inst);
+  void recordRuntimeCost(long long cycles, long long dramBytes);
 };
 
 //===----------------------------------------------------------------------===//

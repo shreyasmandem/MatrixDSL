@@ -1,0 +1,6 @@
+// Residual block: Y = relu(X*W + X)
+matrix X[32][32];
+matrix W[32][32];
+matrix Y[32][32];
+Y = relu(matmul(X, W) + X);
+print(Y);

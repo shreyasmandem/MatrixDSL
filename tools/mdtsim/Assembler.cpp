@@ -304,6 +304,16 @@ bool Assembler::handleDirective(const std::vector<std::string> &tokens,
                                 int line) {
   const std::string directive = tokens[0];
 
+  // Phase 3: `.printname <id> <name>` names a print id for mdt_print.
+  if (directive == ".printname") {
+    if (tokens.size() < 3) {
+      error(line, ".printname requires an id and a name", "");
+      return false;
+    }
+    printNames_[std::atoi(tokens[1].c_str())] = tokens[2];
+    return true;
+  }
+
   if (directive == ".text") {
     inDataSection_ = false;
     return true;
@@ -603,6 +613,15 @@ bool Assembler::secondPass(const std::string &source) {
         continue;
       }
 
+      // Phase 3: runtime functions (mdt_print, mdt_softmax) are not code
+      // labels - they resolve to a negative id that the simulator dispatches
+      // to a host implementation (docs/runtime-abi.md).
+      const int runtimeId = runtimeFunctionId(operand->label);
+      if (runtimeId >= 0 && inst.op == Opcode::CALL) {
+        operand->immediate = -1 - runtimeId;
+        continue;
+      }
+
       error(inst.sourceLine, "undefined label '" + operand->label + "'",
             inst.text);
     }
@@ -617,6 +636,7 @@ bool Assembler::assemble(const std::string &source) {
   labels_.clear();
   dataLabels_.clear();
   errors_.clear();
+  printNames_.clear();
 
   firstPass(source);
   secondPass(source);

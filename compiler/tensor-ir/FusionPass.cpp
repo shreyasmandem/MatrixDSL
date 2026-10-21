@@ -46,6 +46,20 @@ int runFusionPass(TensorFunction &fn) {
         ++fused;
         continue;
       }
+
+      // Phase 3 pattern - epilogue fusion: FusedMatMulAcc -> Relu becomes a
+      // three-operand FusedMatMulRelu, relu(A x B + C). No new opcode: the
+      // code generator applies RELU to the accumulator register before the
+      // tile's single STORE, so the intermediate never round-trips to DRAM.
+      // (The pattern above already rewrote an earlier Add into
+      // FusedMatMulAcc in this same sweep - ops are visited in SSA order.)
+      if (producer->kind == TensorOpKind::FusedMatMulAcc && useCount == 1) {
+        op->kind = TensorOpKind::FusedMatMulRelu;
+        op->operands = producer->operands; // {lhs, rhs, bias}
+        producer->fusible = false;
+        ++fused;
+        continue;
+      }
     }
 
     // Pattern: MatMul -> Add(bias), where the Add's OTHER operand is not

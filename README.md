@@ -197,3 +197,29 @@ when there would be very little schedule left to recover.
 
 Compiling `mtxref` and running the reference checks is the first task before the
 Review 1 demonstration.
+
+---
+
+## Phase 3 (Final Review)
+
+| Item | Status |
+|---|---|
+| AST → Tensor IR lowering (`compiler/tensor-ir/Lowering.*`) | **Implemented**: SSA, print-defined outputs, inputs as `Load` |
+| Epilogue fusion: `FusedMatMulAcc → Relu` becomes `relu(A·B + C)` (`FusionPass.cpp`) | **Implemented**, no new opcode |
+| Dead-code elimination + scratchpad tiling pass (`Passes.*`) | **Implemented**: reuse-driven, capacity-aware staging |
+| Reference interpreter, the oracle (`Interpreter.*`) | **Implemented**: exact-arithmetic inputs, bit-comparable |
+| LLVM IR text emitter (`compiler/llvm/LLVMTextEmitter.*`) | **Implemented**: `matrixdslc --emit-llvm` |
+| Tensor IR API: `constData`, `scratchOffset`, `insertOpBefore`, `eraseIf`, `useCount` | **Extended** |
+
+Lowering and the passes link the whole team's pipeline, so they build from
+the integrated tree on `main`:
+
+```bash
+git checkout main
+cmake -S . -B build && cmake --build build -j && ctest --test-dir build   # 70/70
+build/bin/matrixdslc benchmarks/workloads/mlp_16.mtx --emit-tir -o -
+build/bin/matrixdslc benchmarks/workloads/matmul_32.mtx --stats
+```
+
+`mtxtensorir` and `mtxref` still build standalone from this branch. Details
+are in [`docs/review3/kandi-contribution.md`](docs/review3/kandi-contribution.md).

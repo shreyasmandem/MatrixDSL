@@ -79,9 +79,56 @@ std::string TensorFunction::dump() const {
     os << "%" << op->id << " = " << tensorOpKindName(op->kind);
     for (const TensorOp *operand : op->operands)
       os << " %" << operand->id;
+    // Phase 3: print the attributes a reader needs to follow the program.
+    if (!op->refName.empty())
+      os << " @" << op->refName;
+    if (op->kind == TensorOpKind::ScalarMul)
+      os << " x" << op->constValue;
+    if (op->kind == TensorOpKind::ScratchStore)
+      os << " sp+" << op->scratchOffset;
     os << " : " << op->shape.toString() << "\n";
   }
   return os.str();
+}
+
+} // namespace tensorir
+} // namespace matrixdsl
+
+//===----------------------------------------------------------------------===//
+// Phase 3 additions
+//===----------------------------------------------------------------------===//
+
+namespace matrixdsl {
+namespace tensorir {
+
+TensorOp *TensorFunction::insertOpBefore(const TensorOp *before,
+                                         TensorOpKind kind, TensorShape shape,
+                                         std::vector<TensorOp *> operands) {
+  auto op = std::make_unique<TensorOp>();
+  op->kind = kind;
+  op->shape = shape;
+  op->operands = std::move(operands);
+  TensorOp *raw = op.get();
+  auto pos = ops_.begin();
+  while (pos != ops_.end() && pos->get() != before)
+    ++pos;
+  ops_.insert(pos, std::move(op));
+  renumber();
+  return raw;
+}
+
+void TensorFunction::renumber() {
+  for (size_t i = 0; i < ops_.size(); ++i)
+    ops_[i]->id = static_cast<int>(i);
+}
+
+int TensorFunction::useCount(const TensorOp *op) const {
+  int uses = 0;
+  for (const std::unique_ptr<TensorOp> &user : ops_)
+    for (const TensorOp *operand : user->operands)
+      if (operand == op)
+        ++uses;
+  return uses;
 }
 
 } // namespace tensorir

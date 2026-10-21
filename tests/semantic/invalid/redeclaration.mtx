@@ -1,0 +1,4 @@
+// Expect: ERROR Redeclaration - 'A' already declared
+// plus note pointing at line 2
+matrix A[4][4];
+matrix A[2][2];

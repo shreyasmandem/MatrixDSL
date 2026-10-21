@@ -1,0 +1,2 @@
+// Expect AST: MatrixDecl(X, 8x4x4) - three brackets, first is the batch.
+tensor X[8][4][4];

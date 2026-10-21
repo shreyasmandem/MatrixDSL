@@ -1,0 +1,9 @@
+// The matmul result is printed AND fed to relu: fusion must not fire
+matrix A[4][4];
+matrix B[4][4];
+matrix T[4][4];
+matrix Y[4][4];
+T = matmul(A, B);
+Y = relu(T);
+print(T);
+print(Y);

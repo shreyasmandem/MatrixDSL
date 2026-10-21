@@ -1,0 +1,2 @@
+// Expect: ERROR - negative dimension rejected at parse or semantic stage
+matrix A[-1][4];

@@ -113,8 +113,13 @@ const char *expectationName(Expectation e) {
 int runCompiler(const std::string &compiler, const std::string &file,
                 std::string &output) {
   const std::string outFile = "test_output.tmp";
-  const std::string cmd =
-      "\"" + compiler + "\" \"" + file + "\" > " + outFile + " 2>&1";
+  std::string cmd =
+      "\"" + compiler + "\" \"" + file + "\" -o - > " + outFile + " 2>&1";
+#ifdef _WIN32
+  // cmd.exe strips the first and last quote of a command that starts with
+  // one; wrapping the whole line in one more pair keeps the paths intact.
+  cmd = "\"" + cmd + "\"";
+#endif
 
   const int status = std::system(cmd.c_str());
 

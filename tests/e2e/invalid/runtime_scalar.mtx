@@ -1,0 +1,7 @@
+// expect: error
+// expect-error: scalar factor of '*' must be a numeric constant
+matrix s[1][1];
+matrix A[4][4];
+matrix B[4][4];
+B = s * A;
+print(B);

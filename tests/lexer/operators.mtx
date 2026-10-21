@@ -1,0 +1,2 @@
+// Expect: ASSIGN PLUS MINUS STAR
+= + - *

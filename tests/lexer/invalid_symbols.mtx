@@ -1,0 +1,2 @@
+// Expect: LEXICAL ERRORS for '#', '$' and '?'
+# $ ?

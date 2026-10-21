@@ -1,0 +1,2 @@
+// Expect: ERROR UndeclaredIdentifier - 'Q'
+print(Q);

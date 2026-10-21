@@ -1,0 +1,3 @@
+// expect: error
+matrix A[4][4]
+print(A);

@@ -1,0 +1,6 @@
+// Expect: accepted. 5x7 is not a multiple of 4, so the backend must pad to
+// 8x8 for tiling while the logical shape stays 5x7.
+matrix A[5][7];
+matrix B[7][3];
+matrix C[5][3];
+C = matmul(A, B);

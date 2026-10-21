@@ -1,0 +1,6 @@
+// Square matrix multiply, 64x64: the tiling stress test
+matrix A[64][64];
+matrix B[64][64];
+matrix C[64][64];
+C = matmul(A, B);
+print(C);

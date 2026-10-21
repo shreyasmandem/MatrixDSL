@@ -1,0 +1,4 @@
+// Expect AST: Assignment(Var C, Var A)
+matrix A[2][2];
+matrix C[2][2];
+C = A;

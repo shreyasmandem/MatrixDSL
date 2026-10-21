@@ -1,0 +1,5 @@
+// Expect AST: CallExpr(relu, [CallExpr(matmul, [A, B])])
+matrix A[2][2];
+matrix B[2][2];
+matrix C[2][2];
+C = relu(matmul(A, B));

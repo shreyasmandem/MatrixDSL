@@ -1,0 +1,4 @@
+// Expect: accepted. relu preserves shape
+matrix A[3][7];
+matrix R[3][7];
+R = relu(A);

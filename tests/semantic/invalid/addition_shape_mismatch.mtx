@@ -1,0 +1,6 @@
+// Expect: ERROR ShapeMismatchAdd
+// cannot add matrix A (4x4) and matrix B (3x3)
+matrix A[4][4];
+matrix B[3][3];
+matrix C[4][4];
+C = A + B;

@@ -1,0 +1,4 @@
+// Expect AST: CallExpr(softmax, [Var A])
+tensor A[4][4];
+tensor B[4][4];
+B = softmax(A);

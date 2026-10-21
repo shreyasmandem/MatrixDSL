@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MatrixDSL Lab</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="head"><img src="icons/icon48.png" alt="" width="32" height="32"><div><b>MatrixDSL Lab</b><span>Team 13 · BCSE307P</span></div></div>
+  <p class="status" id="status"><i></i><span>Checking the compiler backend…</span></p>
+  <button id="open" type="button">Open dashboard</button>
+  <div id="help" hidden>
+    <p>Start the backend from the repository root:</p>
+    <pre>build/bin/mtxserve</pre>
+    <button id="retry" class="ghost" type="button">Retry</button>
+  </div>
+  <p class="foot">Compiles and simulates on your machine via <code>127.0.0.1:8765</code>.</p>
+  <script src="popup.js"></script>
+</body>
+</html>

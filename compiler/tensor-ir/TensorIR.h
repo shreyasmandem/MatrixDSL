@@ -139,6 +139,13 @@ struct TensorOp {
   /// converts BF16 back to FP32 (docs/isa-extensions.md section 2.3).
   bool toBF16 = false;
 
+  // --- Phase 3 additions (Review 3) ---------------------------------------
+  /// Const: the literal's values, row-major, rows*cols (batch is always 1).
+  std::vector<double> constData;
+  /// ScratchStore: byte offset of the staged tensor in the 64 KiB scratchpad,
+  /// assigned by the tiling pass. ScratchLoad reads it from its operand.
+  int scratchOffset = -1;
+
   //===------------------------------------------------------------------===//
   // Per-kind operand order (documented, not enforced by the type system -
   // enforcing it structurally would mean the subclass hierarchy this header
@@ -190,6 +197,25 @@ public:
   /// Implemented in TensorIR.cpp; used by tests and by the --dump-tensor-ir
   /// mode of whichever demo tool exercises this function.
   std::string dump() const;
+
+  // --- Phase 3 additions: what the lowering and the passes need ----------
+  /// Insert a new op immediately before `before`, keeping SSA order.
+  TensorOp *insertOpBefore(const TensorOp *before, TensorOpKind kind,
+                           TensorShape shape, std::vector<TensorOp *> operands);
+  /// Remove every op for which `dead` returns true, then renumber ids 0..n-1.
+  template <typename Pred> size_t eraseIf(Pred dead) {
+    const size_t before = ops_.size();
+    std::vector<std::unique_ptr<TensorOp>> kept;
+    for (std::unique_ptr<TensorOp> &op : ops_)
+      if (!dead(op.get()))
+        kept.push_back(std::move(op));
+    ops_ = std::move(kept);
+    renumber();
+    return before - ops_.size();
+  }
+  void renumber();
+  /// Number of operands (across all ops) that reference `op`.
+  int useCount(const TensorOp *op) const;
 
 private:
   std::vector<std::unique_ptr<TensorOp>> ops_;

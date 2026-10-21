@@ -1,0 +1,12 @@
+// Scaled dot-product attention, one head, 16 tokens x 16 dims:
+//   O = softmax(Q * K^T / sqrt(16)) * V
+matrix Q[16][16];
+matrix K[16][16];
+matrix V[16][16];
+matrix S[16][16];
+matrix P[16][16];
+matrix O[16][16];
+S = matmul(Q, transpose(K)) * 0.25;
+P = softmax(S);
+O = matmul(P, V);
+print(O);

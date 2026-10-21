@@ -1,0 +1,5 @@
+// Expect: accepted. matmul(4x3, 3x5) -> 4x5
+matrix A[4][3];
+matrix B[3][5];
+matrix C[4][5];
+C = matmul(A, B);

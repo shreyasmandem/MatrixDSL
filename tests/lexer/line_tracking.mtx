@@ -1,0 +1,5 @@
+matrix A[2][2];
+matrix B[2][2];
+
+C = A + B;
+// Expect: line numbers 1, 2, 4 reported correctly across blank lines

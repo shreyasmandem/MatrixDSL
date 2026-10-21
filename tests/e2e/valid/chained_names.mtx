@@ -1,0 +1,10 @@
+// Named temporaries do not block fusion: lowering is SSA
+matrix X[12][12];
+matrix W[12][12];
+matrix B[12][12];
+matrix T[12][12];
+matrix U[12][12];
+T = matmul(X, W);
+U = T + B;
+U = relu(U);
+print(U);

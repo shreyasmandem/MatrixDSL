@@ -1,0 +1,2 @@
+// Expect: INT INT NUMBER NUMBER
+0 42 3.14 0.5

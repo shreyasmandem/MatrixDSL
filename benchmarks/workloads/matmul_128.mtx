@@ -1,0 +1,6 @@
+// Square matrix multiply, 128x128: the tiling stress test
+matrix A[128][128];
+matrix B[128][128];
+matrix C[128][128];
+C = matmul(A, B);
+print(C);

@@ -1,0 +1,7 @@
+// MatMul -> Add fuses to FusedMatMulAcc; Relu stays separate
+matrix X[8][8];
+matrix W[8][8];
+matrix B[8][8];
+matrix Y[8][8];
+Y = relu(matmul(X, W) + B);
+print(Y);

@@ -1,0 +1,6 @@
+// Transpose of a 3x5 matrix: neither dimension is a multiple of 4
+matrix A[3][5];
+matrix T[5][3];
+A = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15]];
+T = transpose(A);
+print(T);

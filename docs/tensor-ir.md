@@ -101,6 +101,7 @@ cannot be expressed without it.
 | `MatMul -> Relu` (Relu's only input is the MatMul, MatMul has no other use) | `FusedMatMulRelu` | Highest-frequency pattern in both Phase 2 benchmarks |
 | `MatMul -> Add` where the `Add`'s other operand is not itself derived from the same `MatMul` | `FusedMatMulAcc` | Bias/residual pattern |
 | `MatMul -> Add -> Relu` | `FusedMatMulAcc` followed by a separate `Relu` (2 ops, not 3) | No dedicated 3-way opcode exists; fusion still removes one operation. See Review 2 report §6 for why this is a deliberate ISA-growth discipline, not an oversight. |
+| `FusedMatMulAcc -> Relu` (**Phase 3**) | three-operand `FusedMatMulRelu(A, B, C)` = `relu(A·B + C)` | Epilogue fusion with **no new opcode**: the code generator applies `RELU` to the accumulator register before the tile's single `STORE`. Supersedes the row above (`docs/review3/Final_Report.md` §4.2). |
 
 A pattern only fuses when the intermediate value has **no other use** — fusing a
 value that is also consumed elsewhere would require materialising it anyway,

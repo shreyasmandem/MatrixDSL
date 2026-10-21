@@ -1,0 +1,2 @@
+// Expect: ERROR DimensionOutOfRange - dimension must be at least 1
+matrix A[0][4];

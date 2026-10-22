@@ -1,0 +1,1685 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MatrixDSL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F4F2EB; --surface:#FBFAF6; --sunk:#ECE9E0; --ink:#17201A; --ink-2:#3A453E; --muted:#67716A;
+  --line:#DBD7CB; --line-2:#C9C4B5; --green:#1D4B37; --green-2:#2E6B50; --tint:#E1EAE2; --on-green:#F4F2EB;
+  --code-bg:#18201B; --code-ink:#D9E2DA; --code-dim:#7D8C82; --code-k:#9FD4B4; --code-r:#E6C27A; --code-n:#E9A38A; --code-f:#A9C6EE; --code-hl:rgba(159,212,180,.13);
+  --impl:#2A6545; --impl-bg:#D9E9DD; --dev:#855A0C; --dev-bg:#F2E4C4; --prop:#33557B; --prop-bg:#DCE5EF; --fut:#67568A; --fut-bg:#E6E0EF; --bad:#A33A2A; --bad-bg:#F4DDD6;
+  --transfer:#C39A4B; --compute:#2E6B50;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif; --sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,monospace;
+  --r:14px; --r-sm:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#111512; --surface:#181E1A; --sunk:#1F2621; --ink:#E5EAE4; --ink-2:#C0C9C2; --muted:#8C978F;
+    --line:#2B332D; --line-2:#3A443D; --green:#8CCBA7; --green-2:#74B891; --tint:#1C2A22; --on-green:#0F1411;
+    --code-bg:#0C100D; --code-hl:rgba(159,212,180,.10);
+    --impl:#8FD1A8; --impl-bg:#1B3024; --dev:#E5BE6E; --dev-bg:#342A15; --prop:#9DBDE3; --prop-bg:#1D2A3A; --fut:#C2B2E2; --fut-bg:#2A2436; --bad:#EE9A86; --bad-bg:#3A201B;
+    --transfer:#D2AE63; --compute:#6FB690;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#111512; --surface:#181E1A; --sunk:#1F2621; --ink:#E5EAE4; --ink-2:#C0C9C2; --muted:#8C978F;
+  --line:#2B332D; --line-2:#3A443D; --green:#8CCBA7; --green-2:#74B891; --tint:#1C2A22; --on-green:#0F1411;
+  --code-bg:#0C100D; --code-hl:rgba(159,212,180,.10);
+  --impl:#8FD1A8; --impl-bg:#1B3024; --dev:#E5BE6E; --dev-bg:#342A15; --prop:#9DBDE3; --prop-bg:#1D2A3A; --fut:#C2B2E2; --fut-bg:#2A2436; --bad:#EE9A86; --bad-bg:#3A201B;
+  --transfer:#D2AE63; --compute:#6FB690;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{background:var(--paper);color:var(--ink);font:15.5px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--green)}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px;border-radius:4px}
+code,.mono{font-family:var(--mono);font-size:.88em}
+p code,li code,td code{background:var(--sunk);padding:.08em .35em;border-radius:5px}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav-in{max-width:1160px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:20px;height:56px}
+.brand{font-family:var(--serif);font-size:21px;font-weight:600;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap}
+.brand i{color:var(--green);font-weight:500}
+.links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.links::-webkit-scrollbar{display:none}
+.links a{font-size:13px;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:999px;white-space:nowrap;transition:background .2s,color .2s}
+.links a:hover{color:var(--ink)}
+.links a.on{background:var(--tint);color:var(--green);font-weight:500}
+.keys{font-size:12px;color:var(--muted);white-space:nowrap}
+.keys kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+@media (max-width:760px){.keys{display:none}}
+
+/* layout */
+.wrap{max-width:1160px;margin:0 auto;padding-inline:20px}
+section{padding-block:84px 24px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--green-2);display:flex;gap:10px;align-items:center}
+.eyebrow b{font-weight:600;color:var(--muted)}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text-wrap:balance;margin:0}
+h2{font-size:clamp(30px,4.2vw,44px);line-height:1.08;margin-top:12px}
+h2 em,h1 em{font-style:italic;color:var(--green)}
+h3{font-size:22px;line-height:1.2}
+.lede{font-size:17.5px;color:var(--ink-2);max-width:66ch;margin:16px 0 0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:880px){.grid2{grid-template-columns:1fr}}
+
+/* status chips */
+.st{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap;vertical-align:middle}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.impl{color:var(--impl);background:var(--impl-bg)}
+.st.dev{color:var(--dev);background:var(--dev-bg)}
+.st.prop{color:var(--prop);background:var(--prop-bg)}
+.st.fut{color:var(--fut);background:var(--fut-bg)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:22px;align-items:center}
+.legend span.t{font-size:13px;color:var(--muted)}
+
+/* buttons */
+.btn{font:500 13.5px var(--sans);border:1px solid var(--line-2);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;display:inline-flex;gap:8px;align-items:center;transition:background .15s,border-color .15s}
+.btn:hover{border-color:var(--green-2)}
+.btn.pri{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:inline-flex;background:var(--sunk);border-radius:999px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{font:500 13px var(--sans);border:0;background:transparent;color:var(--muted);padding:7px 13px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+/* code */
+.code{background:var(--code-bg);color:var(--code-ink);font:12.8px/1.65 var(--mono);border-radius:var(--r-sm);padding:14px 16px;margin:0;overflow-x:auto;white-space:pre;tab-size:2}
+.code .c{color:var(--code-dim);font-style:italic}.code .k{color:var(--code-k)}.code .r{color:var(--code-r)}.code .n{color:var(--code-n)}.code .f{color:var(--code-f)}.code .d{color:var(--code-f)}.code .l{color:var(--code-r)}
+.code .ln{display:block;margin:0 -16px;padding:0 16px;transition:background .25s}
+.code .ln.hot{background:var(--code-hl);box-shadow:inset 3px 0 0 var(--code-k)}
+.code .ln.dim{opacity:.38}
+.code .ln.dead{text-decoration:line-through;text-decoration-color:rgba(233,163,138,.6);opacity:.55}
+.fname{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+
+/* hero */
+.hero{padding-block:64px 36px}
+.hero-grid{display:grid;grid-template-columns:1fr 1.02fr;gap:48px;align-items:start}
+@media (max-width:960px){.hero-grid{grid-template-columns:1fr;gap:32px}}
+.hero h1{font-size:clamp(56px,9vw,104px);line-height:.95;letter-spacing:-.035em;font-weight:500;margin-top:18px}
+.hero .tag{font-family:var(--serif);font-size:clamp(24px,3vw,32px);line-height:1.2;margin:14px 0 0;color:var(--ink-2);font-weight:400}
+.hero .tag em{color:var(--green)}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin:28px 0 0;border-top:1px solid var(--line)}
+.facts div{padding:12px 0;border-bottom:1px solid var(--line)}
+.facts div:nth-child(odd){padding-right:16px}
+.facts dt{font-size:12px;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--serif);font-size:21px;font-variant-numeric:tabular-nums}
+.compile{padding:18px}
+.ticker{display:flex;gap:4px;margin:14px 0;flex-wrap:wrap}
+.ticker span{font-family:var(--mono);font-size:10.5px;padding:4px 7px;border-radius:6px;background:var(--sunk);color:var(--muted);transition:background .25s,color .25s}
+.ticker span.on{background:var(--green);color:var(--on-green)}
+.ticker span.done{background:var(--tint);color:var(--green)}
+.compile-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
+
+/* compare table */
+.tbl-wrap{overflow-x:auto;margin-top:28px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--sunk)}
+td.rowh{font-weight:600;white-space:nowrap}
+td.p2{background:color-mix(in srgb,var(--tint) 55%,transparent)}
+.num{font-variant-numeric:tabular-nums}
+
+/* shape checker */
+.checker{padding:22px;margin-top:20px;display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center}
+@media (max-width:880px){.checker{grid-template-columns:1fr}}
+.operands{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.opnd{display:flex;flex-direction:column;gap:6px}
+.opnd label{font-size:12px;color:var(--muted)}
+.dims{display:flex;gap:4px;align-items:center;font-family:var(--mono)}
+select{font:500 14px var(--mono);background:var(--sunk);color:var(--ink);border:1px solid var(--line-2);border-radius:6px;padding:6px 8px}
+.verdict{border-radius:var(--r-sm);padding:16px 18px;font-size:14.5px}
+.verdict.ok{background:var(--impl-bg);color:var(--ink)}
+.verdict.err{background:var(--bad-bg);color:var(--ink)}
+.verdict .big{font-family:var(--mono);font-size:17px;font-weight:600;display:block;margin-bottom:4px}
+.verdict.ok .big{color:var(--impl)}.verdict.err .big{color:var(--bad)}
+
+/* pipeline */
+.pipe{display:grid;grid-template-columns:270px 1fr;gap:20px;margin-top:32px}
+@media (max-width:880px){.pipe{grid-template-columns:1fr}}
+.rail{display:flex;flex-direction:column;gap:2px;position:relative}
+@media (max-width:880px){.rail{flex-direction:row;overflow-x:auto;padding-bottom:6px}}
+.stage{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:center;text-align:left;background:transparent;border:0;border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--ink);font:inherit}
+@media (max-width:880px){.stage{flex:0 0 auto;grid-template-columns:22px auto}}
+.stage:hover{background:var(--sunk)}
+.stage[aria-selected="true"]{background:var(--surface);box-shadow:0 0 0 1px var(--line)}
+.stage .ix{font-family:var(--mono);font-size:11px;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--muted)}
+.stage[aria-selected="true"] .ix{background:var(--green);color:var(--on-green)}
+.stage .nm{font-size:14px;font-weight:500;line-height:1.25}
+.stage .ow{font-size:11.5px;color:var(--muted);display:block;font-weight:400}
+.panel{padding:24px}
+.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.panel-head h3{font-size:26px}
+.panel p{color:var(--ink-2);max-width:68ch}
+.meta{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:10px 0 16px}
+.meta b{color:var(--ink-2);font-weight:500}
+.panel-nav{display:flex;justify-content:space-between;margin-top:16px;gap:10px}
+.note{font-size:13px;color:var(--muted);border-left:2px solid var(--line-2);padding-left:12px;margin-top:14px}
+
+/* fusion */
+.fx-top{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;margin-top:28px}
+.fx-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:960px){.fx-grid{grid-template-columns:1fr}}
+.fx-col{padding:16px;display:flex;flex-direction:column;gap:8px}
+.fx-col h4{margin:0;font:600 12px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.fx-verdict{margin-top:16px;padding:18px 20px;display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+@media (max-width:600px){.fx-verdict{grid-template-columns:1fr}}
+.fx-count{font-family:var(--serif);font-size:44px;line-height:1;color:var(--green)}
+.fx-count small{display:block;font:500 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+/* memory */
+.mem{display:grid;grid-template-columns:1fr 1.15fr;gap:20px;margin-top:28px}
+@media (max-width:960px){.mem{grid-template-columns:1fr}}
+.levels{display:flex;flex-direction:column;gap:10px;padding:20px}
+.lvl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:14px 16px;border-radius:10px;border:1px solid var(--line);background:var(--paper);transition:background .25s,border-color .25s,transform .25s}
+.lvl .ln1{font-weight:600;font-size:14.5px}
+.lvl .ln2{grid-column:1/-1;font-size:12.5px;color:var(--muted)}
+.lvl .lat{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.lvl.act{background:var(--tint);border-color:var(--green-2);transform:translateX(4px)}
+.lvl.act .lat{color:var(--green)}
+.arrow{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin:-4px 0}
+.counters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:6px}
+@media (max-width:520px){.counters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.counters div{background:var(--surface);padding:10px 12px}
+.counters dt{font-size:11px;color:var(--muted)}
+.counters dd{margin:0;font-family:var(--mono);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.stepper{padding:20px;display:flex;flex-direction:column;gap:12px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.runs{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.lane{display:grid;grid-template-columns:96px 1fr 40px;gap:10px;align-items:center;font-size:12px}
+.lane .lb{color:var(--muted)}
+.lane .val{font-family:var(--mono);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.bars{display:flex;height:26px;border-radius:5px;overflow:hidden;background:var(--sunk)}
+.bars span{height:100%;display:grid;place-items:center;font:600 10.5px var(--mono);color:#fff;border-right:1px solid var(--surface);min-width:0;overflow:hidden}
+.bars span.T{background:var(--transfer);color:#2A1E07}
+.bars span.C{background:var(--compute);color:#F4F2EB}
+.bars span.P{background:linear-gradient(180deg,var(--transfer) 0 50%,var(--compute) 50% 100%);color:#fff;text-shadow:0 0 3px rgba(0,0,0,.5)}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+.compare{margin-top:20px;padding:22px}
+.cmp-row{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;padding:8px 0}
+@media (max-width:560px){.cmp-row{grid-template-columns:1fr;gap:6px}}
+.cmp-row .lb{font-size:13px;color:var(--ink-2)}
+.cmp-bars{display:flex;flex-direction:column;gap:5px}
+.cmp-bar{display:grid;grid-template-columns:1fr 64px;gap:10px;align-items:center;font-size:12px}
+.cmp-bar .track{height:14px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.cmp-bar .fill{height:100%;border-radius:4px}
+.cmp-bar .fill.a{background:var(--line-2)}
+.cmp-bar .fill.b{background:var(--green-2)}
+.cmp-bar .v{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* tiling calc */
+.calc{padding:22px;margin-top:20px}
+.calc-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:18px}
+@media (max-width:760px){.calc-out{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.calc-out dt{font-size:12px;color:var(--muted)}
+.calc-out dd{margin:2px 0 0;font-family:var(--serif);font-size:26px;font-variant-numeric:tabular-nums;line-height:1.15}
+.calc-out dd small{font:12px var(--sans);color:var(--muted);display:block}
+input[type=range]{width:100%;accent-color:var(--green-2)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ISA */
+.regs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+@media (max-width:880px){.regs{grid-template-columns:1fr}}
+.rf{padding:18px}
+.rf h4{margin:0 0 4px;font:600 15px var(--sans)}
+.rf p{margin:0 0 12px;font-size:13px;color:var(--muted)}
+.cells{display:grid;gap:4px}
+.cells span{font:500 11px var(--mono);text-align:center;padding:6px 0;border-radius:5px;background:var(--sunk);color:var(--ink-2)}
+.cells.r{grid-template-columns:repeat(8,1fr)}
+.cells.v{grid-template-columns:repeat(4,1fr)}
+.cells.m{grid-template-columns:repeat(4,1fr)}
+.cells.m span{aspect-ratio:1;display:grid;place-items:center;background:var(--tint);color:var(--green);max-width:100%;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:25% 25%}
+.isa-filter{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-top:28px}
+.isa-tbl td:first-child{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+.isa-tbl td.mn{font-family:var(--mono);font-weight:600;white-space:nowrap}
+.isa-tbl tr.p2 td.mn{color:var(--green)}
+.tag2{font:600 10px var(--mono);letter-spacing:.06em;padding:2px 6px;border-radius:4px;background:var(--tint);color:var(--green);margin-left:6px}
+
+/* precision */
+.bits{display:grid;grid-template-columns:repeat(32,minmax(0,1fr));gap:2px;margin-top:10px}
+.bits span{font:500 10px var(--mono);text-align:center;padding:5px 0;border-radius:3px;background:var(--sunk);color:var(--ink-2)}
+.bits span.s{background:var(--bad-bg);color:var(--bad)}
+.bits span.e{background:var(--prop-bg);color:var(--prop)}
+.bits span.m{background:var(--impl-bg);color:var(--impl)}
+.bits span.x{opacity:.3;text-decoration:line-through}
+@media (max-width:620px){.bits span{font-size:8px;padding:4px 0}}
+.bitlab{display:grid;grid-template-columns:1fr 8fr 23fr;gap:2px;font:11px var(--mono);color:var(--muted);margin-top:4px}
+.prec-in{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.prec-in input{font:500 16px var(--mono);background:var(--sunk);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:8px 12px;width:170px}
+.kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:18px}
+@media (max-width:700px){.kv{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kv dt{font-size:12px;color:var(--muted)}
+.kv dd{margin:2px 0 0;font:600 15px var(--mono);font-variant-numeric:tabular-nums;word-break:break-all}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:28px}
+@media (max-width:820px){.team{grid-template-columns:1fr}}
+.member{padding:22px;display:flex;flex-direction:column;gap:10px}
+.member .who{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.member h3{font-size:24px}
+.member .id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.member .role{font-size:13px;font-weight:600;color:var(--green)}
+.member ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:14px}
+.member li{margin:3px 0}
+.member .ev{margin-top:auto;padding-top:10px;border-top:1px dashed var(--line-2);font-size:12.5px;color:var(--muted);display:flex;gap:8px 14px;flex-wrap:wrap}
+
+/* roadmap */
+.road{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:28px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+@media (max-width:900px){.road{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.road{grid-template-columns:1fr}}
+.road > div{padding:20px;border-right:1px solid var(--line)}
+.road > div:last-child{border-right:0}
+@media (max-width:900px){.road > div{border-bottom:1px solid var(--line)}}
+.road h4{margin:8px 0 10px;font:500 20px var(--serif)}
+.road ul{margin:0;padding-left:16px;font-size:13.5px;color:var(--ink-2)}
+.road li{margin:4px 0}
+.honest{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+@media (max-width:820px){.honest{grid-template-columns:1fr}}
+.honest .card{padding:22px}
+.honest ul{margin:10px 0 0;padding-left:18px;color:var(--ink-2);font-size:14.5px}
+.honest li{margin:6px 0}
+
+/* viva */
+.qa{margin-top:28px;border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:18px 36px 18px 0;font-family:var(--serif);font-size:21px;position:relative}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:4px;top:14px;font:400 24px var(--sans);color:var(--green-2);transition:transform .2s}
+details[open] summary::after{transform:rotate(45deg)}
+details p{margin:0 0 20px;color:var(--ink-2);max-width:72ch}
+
+/* simulations */
+a.btn{text-decoration:none}
+.sim{padding:22px;margin-top:24px}
+.sim-k{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--green-2);margin-bottom:4px}
+.sim-head{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.sim-ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.phases{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px}
+.phases span{font:500 11.5px var(--mono);padding:5px 10px;border-radius:999px;background:var(--sunk);color:var(--muted);transition:background .25s,color .25s}
+.phases span.on{background:var(--green);color:var(--on-green)}
+.phases span.done{background:var(--tint);color:var(--green)}
+.simA-body{display:grid;grid-template-columns:1fr 1.1fr;gap:24px;margin-top:10px}
+@media (max-width:900px){.simA-body{grid-template-columns:1fr}}
+.col,.mcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.lbl{font:600 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+.srcline{font:500 16px var(--mono);background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:12px 14px;white-space:pre;overflow-x:auto}
+.srcline span{border-radius:3px;transition:background .15s,color .15s}
+.srcline span.seen{color:var(--code-k)}
+.srcline span.cur{background:var(--code-k);color:var(--code-bg)}
+.tape{display:flex;flex-wrap:wrap;gap:4px;min-height:52px;align-content:flex-start}
+.tape span{font:500 10.5px var(--mono);padding:3px 6px;border-radius:5px;background:var(--sunk);color:var(--ink-2);animation:pop .25s ease}
+.tape span b{color:var(--green);font-weight:600}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+.svg{width:100%;height:auto;display:block;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+.svg text{font:500 11.5px var(--mono);fill:var(--ink)}
+.svg .nd rect{fill:var(--surface);stroke:var(--line-2);stroke-width:1.2;transition:fill .25s,stroke .25s}
+.svg .nd.on rect{fill:var(--tint);stroke:var(--green-2)}
+.svg .nd.hot rect{fill:var(--tint);stroke:var(--green);stroke-width:2.4}
+.svg .nd.dead{opacity:.35}
+.svg .nd.dead rect{stroke-dasharray:4 3}
+.svg .nd text.sh{fill:var(--green-2);font-size:10.5px}
+.svg .nd text.idl{fill:var(--muted);font-size:10px}
+.svg .ed{stroke:var(--line-2);stroke-width:1.4;fill:none;transition:opacity .35s}
+.svg .ed.fz{stroke:var(--green-2);stroke-width:1.8}
+.svg .ed.gone{opacity:.14}
+.svg .nd{transition:opacity .35s}
+.svg .hide{opacity:0}
+.svg .ahp{fill:var(--line-2)}
+.svg .ahp.g{fill:var(--green-2)}
+.caption{margin-top:16px;background:var(--sunk);border-radius:10px;padding:12px 16px;font-size:14.5px;color:var(--ink-2);min-height:3.4em}
+.caption b{color:var(--green);font-weight:600}
+.machine{position:relative;display:grid;grid-template-columns:.85fr 1.15fr;gap:24px;margin-top:10px}
+@media (max-width:960px){.machine{grid-template-columns:1fr}}
+.dram{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.mregs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.blk{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px;transition:border-color .25s,box-shadow .25s}
+.blk.act{border-color:var(--green-2);box-shadow:0 0 0 3px var(--tint)}
+.bl{font:600 12px var(--mono);display:flex;justify-content:space-between;gap:6px;margin-bottom:6px;color:var(--ink)}
+.bl i{font-style:normal;color:var(--muted);font-weight:400}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:2px}
+.mg span{font:500 12px var(--mono);text-align:center;padding:5px 0;border-radius:3px;background:var(--sunk);color:var(--ink);font-variant-numeric:tabular-nums;transition:background .2s,color .2s}
+.mg.sm span{font-size:10.5px;padding:3px 0}
+.mg span.e{color:var(--line-2)}
+.mg span.neg{color:var(--bad)}
+.mg span.row{background:color-mix(in srgb,var(--transfer) 38%,var(--sunk))}
+.mg span.colh{background:color-mix(in srgb,var(--prop) 30%,var(--sunk))}
+.mg span.tgt{background:var(--green);color:var(--on-green)}
+.mg span.zap{background:var(--bad);color:var(--surface)}
+.flyer{position:absolute;z-index:5;pointer-events:none;transform-origin:0 0;box-shadow:0 10px 28px rgba(0,0,0,.2);border-color:var(--green-2);margin:0}
+.sregs{display:flex;gap:6px;flex-wrap:wrap}
+.sregs span{font:500 12px var(--mono);padding:5px 9px;border-radius:6px;background:var(--sunk);color:var(--ink-2);transition:background .25s,color .25s}
+.sregs span.act{background:var(--green);color:var(--on-green)}
+.idle{font:11px var(--mono);color:var(--muted)}
+.mu{font:500 13px var(--mono);background:var(--code-bg);color:var(--code-ink);border-radius:8px;padding:12px 14px;min-height:3.2em;overflow-x:auto;white-space:pre}
+.mu .k{color:var(--code-k)}.mu .r{color:var(--code-r)}.mu .n{color:var(--code-n)}
+.race{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:14px 16px 12px;background:var(--paper);transition:border-color .3s}
+.race.done{border-color:var(--green-2)}
+.rhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:600 13px var(--mono)}
+.rclock{font:600 24px var(--mono);font-variant-numeric:tabular-nums;color:var(--green)}
+.rclock small{font-size:11px;color:var(--muted);font-weight:500;margin-left:4px}
+.rtrack{position:relative;display:flex;justify-content:space-between;gap:8px;margin-top:18px}
+.rb{flex:1;min-width:0;text-align:center;font:600 12px var(--sans);padding:14px 4px 10px;border-radius:10px;background:var(--surface);border:1px solid var(--line);transition:border-color .2s,background .2s}
+.rb small{display:block;font:500 10.5px var(--mono);color:var(--muted);margin-top:2px}
+.rb.act{border-color:var(--green-2);background:var(--tint)}
+.tok{position:absolute;top:-11px;left:0;width:22px;height:22px;border-radius:5px;background:var(--transfer);box-shadow:0 2px 8px rgba(0,0,0,.25);opacity:0;transition:opacity .2s,background .2s;background-image:linear-gradient(rgba(255,255,255,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.35) 1px,transparent 1px);background-size:25% 25%}
+.tok.c{background-color:var(--compute)}
+.rprog{height:4px;border-radius:2px;background:var(--sunk);margin-top:12px;overflow:hidden}
+.rprog i{display:block;height:100%;width:0;background:var(--green-2)}
+.rfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px;font:12px var(--mono);color:var(--muted)}
+.rfoot .rins{color:var(--ink-2)}
+.rfoot .rstat b{color:var(--green)}
+
+/* team relay */
+.relay-track{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px;padding-top:40px}
+.station{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px;text-align:left;cursor:pointer;font:inherit;color:var(--ink);display:flex;gap:10px;align-items:center;min-width:0;transition:border-color .3s,background .3s,transform .3s}
+.station:hover{border-color:var(--line-2)}
+.station .av{flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;font:600 12px var(--mono);background:var(--sunk);color:var(--muted);transition:background .3s,color .3s}
+.station .sx{min-width:0;display:flex;flex-direction:column}
+.station .sn{font-weight:600;font-size:13.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station .sr{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.station.on{border-color:var(--green-2);background:var(--tint);transform:translateY(-2px)}
+.station.on .av{background:var(--green);color:var(--on-green)}
+.station.done .av{background:var(--tint);color:var(--green)}
+@media (max-width:640px){.station{padding:10px 8px}.station .av,.station .sr{display:none}.station .sn{font-size:12px}}
+.baton{position:absolute;top:2px;left:0;font:600 11px var(--mono);padding:6px 11px;border-radius:999px;background:var(--green);color:var(--on-green);white-space:nowrap;transition:transform .7s cubic-bezier(.5,0,.3,1);box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.baton::after{content:"";position:absolute;left:50%;bottom:-5px;margin-left:-5px;border:5px solid transparent;border-bottom:0;border-top-color:var(--green)}
+.relay-stage{display:grid;grid-template-columns:1.3fr .7fr;gap:24px;margin-top:20px}
+@media (max-width:900px){.relay-stage{grid-template-columns:1fr}}
+.rp-who{display:flex;gap:14px;align-items:center}
+.rp-who .av{flex:0 0 52px;height:52px;border-radius:50%;display:grid;place-items:center;font:600 16px var(--mono);background:var(--green);color:var(--on-green)}
+.rp-who h3{font-size:30px}
+.rp-who .meta{margin:4px 0 0}
+.po{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+@media (max-width:700px){.po{grid-template-columns:1fr}}
+.pbox{border-radius:10px;border:1px solid var(--line);overflow:hidden;background:var(--code-bg);transition:opacity .45s,transform .45s;min-width:0}
+.pbox .ph{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:7px 12px;font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.pbox.p1 .ph{background:var(--sunk);color:var(--muted)}
+.pbox.p2 .ph{background:var(--green);color:var(--on-green)}
+.pbox.p2{border-color:var(--green-2);box-shadow:0 0 0 3px var(--tint)}
+.pbox .code{border-radius:0;font-size:11.8px;min-height:100%}
+.pbox.p1 .code{color:var(--code-dim)}
+.pbox.hid{opacity:0;transform:translateY(6px)}
+.code .ln.off{opacity:0}
+.was{margin:0;padding-left:18px;font-size:13.5px;color:var(--muted)}
+.was li{margin:3px 0}
+.deltas{display:flex;flex-direction:column;gap:8px}
+.delta{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ink);animation:pop .3s ease}
+.delta .plus{flex:0 0 auto;font:700 10.5px var(--mono);background:var(--green);color:var(--on-green);border-radius:5px;padding:2px 6px;margin-top:2px}
+.rev{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.board{margin-top:22px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.bhead,.brow{display:grid;grid-template-columns:1.1fr 1fr 22px 1.3fr .7fr;gap:10px;align-items:center;padding:10px 16px}
+.bhead{background:var(--sunk);font:600 10.5px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.brow{border-top:1px solid var(--line);font-size:14px;transition:background .35s}
+.brow .v1{font-family:var(--mono);font-size:12.5px;color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line-2)}
+.brow .ar{color:var(--green-2);font-family:var(--mono)}
+.brow .v2{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--green)}
+.brow .own{font-size:12px;color:var(--muted)}
+.brow.hl{background:var(--tint)}
+@media (max-width:640px){.bhead{display:none}.brow{grid-template-columns:1fr 22px 1fr}.brow .lb{grid-column:1/-1;font-weight:600}.brow .own{display:none}}
+
+footer{margin-top:80px;border-top:1px solid var(--line);padding-block:28px 48px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+</style>
+
+<nav class="nav" aria-label="Sections">
+  <div class="nav-in">
+    <a class="brand" href="#top">Matrix<i>DSL</i></a>
+    <div class="links" id="links">
+      <a href="#simulate">Simulate</a>
+      <a href="#language">Language</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#fusion">Fusion</a>
+      <a href="#memory">Memory</a>
+      <a href="#isa">MDT ISA</a>
+      <a href="#precision">BF16</a>
+      <a href="#team">Team</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#viva">Viva</a>
+    </div>
+    <span class="keys"><kbd>←</kbd> <kbd>→</kbd> sections</span>
+  </div>
+</nav>
+
+<main>
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">BCSE307P Compiler Design <b>·</b> Project A3 <b>·</b> Team 13</div>
+      <h1>Matrix<em>DSL</em></h1>
+      <p class="tag">An AI compiler built <em>around the hardware</em>.</p>
+      <p class="lede">A small language where a matrix's shape is its type, a compiler that lowers it through a tensor-level IR with operator fusion, and <b>MDT</b> — a custom matrix ISA with its own assembler, simulator and scratchpad memory. One program, all the way down.</p>
+      <dl class="facts">
+        <div><dt>MDT instructions</dt><dd>17 → 24</dd></div>
+        <div><dt>Tensor IR op kinds</dt><dd>19 <span class="small muted">(13 + 6 fused)</span></dd></div>
+        <div><dt>Scratchpad</dt><dd>64 KiB</dd></div>
+        <div><dt>Tests passing</dt><dd>17/17 · 28/28</dd></div>
+      </dl>
+      <div style="margin-top:24px;display:flex;gap:10px;flex-wrap:wrap"><a class="btn pri" href="#simulate">Watch the simulations ↓</a><a class="btn" href="#simD">What changed in Phase 2 ↓</a></div>
+    </div>
+    <div class="card compile">
+      <div class="fname"><span>layer.mtx</span><span>source</span></div>
+      <pre class="code" data-lang="mtx" id="heroSrc"></pre>
+      <div class="ticker" id="ticker"></div>
+      <div class="fname"><span>layer.s</span><span>MDT assembly</span></div>
+      <pre class="code" data-lang="asm" id="heroAsm"></pre>
+      <div class="compile-foot">
+        <span class="small muted">One fused <code>MATMULACC</code> replaces matmul + add.</span>
+        <button class="btn pri" id="compileBtn" type="button">Replay compile ▸</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SIMULATIONS -->
+<section id="simulate">
+  <div class="wrap">
+    <div class="eyebrow">Live <b>·</b> three simulations</div>
+    <h2>Watch it <em>happen</em></h2>
+    <p class="lede">Press play on any of these. The first compiles the layer phase by phase. The second runs the compiled program on the simulated MDT machine with real numbers. The third races the naive and scratchpad programs against the same clock.</p>
+
+    <!-- Sim 1: compile -->
+    <div class="card sim" id="simA">
+      <div class="sim-head">
+        <div><div class="sim-k">Simulation 1</div><h3>Compiling one line</h3></div>
+        <div class="sim-ctrl"><button class="btn pri" type="button" id="aPlay">Play ▸</button></div>
+      </div>
+      <div class="phases" id="aPh"><span>Lex</span><span>Parse</span><span>Check shapes</span><span>Tensor IR</span><span>Fuse</span><span>Emit MDT</span></div>
+      <div class="simA-body">
+        <div class="col">
+          <div class="lbl">Source</div><div class="srcline" id="aSrc"></div>
+          <div class="lbl">Tokens</div><div class="tape" id="aTape"></div>
+          <div class="lbl">Abstract syntax tree</div><svg class="svg" id="aAst" viewBox="0 0 460 300" role="img" aria-label="Abstract syntax tree"></svg>
+        </div>
+        <div class="col">
+          <div class="lbl">Tensor IR dataflow</div><svg class="svg" id="aDf" viewBox="0 0 520 225" role="img" aria-label="Tensor IR dataflow graph"></svg>
+          <div class="lbl">MDT assembly</div><pre class="code" id="aAsm"></pre>
+        </div>
+      </div>
+      <div class="caption" id="aCap" aria-live="polite"></div>
+    </div>
+
+    <!-- Sim 2: machine -->
+    <div class="card sim" id="simB">
+      <div class="sim-head">
+        <div><div class="sim-k">Simulation 2</div><h3>Running on the MDT machine</h3></div>
+        <div class="sim-ctrl">
+          <button class="btn pri" type="button" id="bPlay">Play ▸</button>
+          <button class="btn" type="button" id="bStep">Step</button>
+          <button class="btn" type="button" id="bReset">Reset</button>
+          <div class="seg" id="bSpeed" role="group" aria-label="Speed"><button type="button" data-s="1" aria-pressed="true">1×</button><button type="button" data-s="2" aria-pressed="false">2×</button><button type="button" data-s="4" aria-pressed="false">4×</button></div>
+        </div>
+      </div>
+      <div class="machine" id="mach">
+        <div class="mcol">
+          <div class="lbl">layer.s</div>
+          <pre class="code" id="bProg"></pre>
+          <dl class="counters">
+            <div><dt>Instructions</dt><dd id="bN">0</dd></div>
+            <div><dt>DRAM bytes</dt><dd id="bD">0</dd></div>
+            <div><dt>Sequential</dt><dd id="bS">0</dd></div>
+            <div><dt>Overlap-aware</dt><dd id="bO">0</dd></div>
+          </dl>
+          <div class="runs"><div class="lane"><span class="lb">Timeline</span><div class="bars" id="bBars"></div><span class="val" id="bSV"></span></div></div>
+        </div>
+        <div class="mcol">
+          <div class="lbl">DRAM</div>
+          <div class="dram">
+            <div class="blk" id="bkA"><span class="bl">A <i>@0</i></span><div class="mg sm" id="dA"></div></div>
+            <div class="blk" id="bkB"><span class="bl">B <i>@64</i></span><div class="mg sm" id="dB"></div></div>
+            <div class="blk" id="bkC"><span class="bl">C <i>@128</i></span><div class="mg sm" id="dC"></div></div>
+            <div class="blk" id="bkY"><span class="bl">Y <i>@192</i></span><div class="mg sm" id="dY"></div></div>
+          </div>
+          <div class="lbl">Scalar registers</div>
+          <div class="sregs" id="bSR"></div>
+          <div class="lbl">Matrix registers</div>
+          <div class="mregs">
+            <div class="blk" id="bkM1"><span class="bl">M1 <i>A tile</i></span><div class="mg" id="rM1"></div></div>
+            <div class="blk" id="bkM2"><span class="bl">M2 <i>B tile</i></span><div class="mg" id="rM2"></div></div>
+            <div class="blk" id="bkM0"><span class="bl">M0 <i>accumulator</i></span><div class="mg" id="rM0"></div></div>
+          </div>
+          <div class="idle">M3 – M7 idle</div>
+          <div class="lbl">Matrix unit</div>
+          <div class="mu" id="bMu"></div>
+        </div>
+      </div>
+      <div class="caption" id="bCap" aria-live="polite"></div>
+    </div>
+
+    <!-- Sim 3: race -->
+    <div class="card sim" id="simC">
+      <div class="sim-head">
+        <div><div class="sim-k">Simulation 3</div><h3>The memory race</h3></div>
+        <div class="sim-ctrl"><button class="btn pri" type="button" id="cRace">Race ▸</button></div>
+      </div>
+      <p class="muted small" style="margin:8px 0 0;max-width:72ch">Same three matmuls, same clock. Each coloured square is the 4×4 tile. Its travel time is its latency: a DRAM trip takes 8 cycles and a scratchpad trip takes 1.</p>
+      <div class="race" id="rN">
+        <div class="rhead"><span>tiling_naive.s</span><span class="rclock"><span class="cv">0</span><small>cycles</small></span></div>
+        <div class="rtrack"><div class="rb" data-b="dram">DRAM<small>8 cyc</small></div><div class="rb" data-b="sp">Scratchpad<small>1 cyc</small></div><div class="rb" data-b="reg">M1<small>register</small></div><div class="rb" data-b="unit">Matrix unit<small>4 cyc</small></div><div class="tok"></div></div>
+        <div class="rprog"><i></i></div>
+        <div class="rfoot"><span class="rins"></span><span class="rstat"></span></div>
+      </div>
+      <div class="race" id="rS">
+        <div class="rhead"><span>tiling_scratchpad.s</span><span class="rclock"><span class="cv">0</span><small>cycles</small></span></div>
+        <div class="rtrack"><div class="rb" data-b="dram">DRAM<small>8 cyc</small></div><div class="rb" data-b="sp">Scratchpad<small>1 cyc</small></div><div class="rb" data-b="reg">M1<small>register</small></div><div class="rb" data-b="unit">Matrix unit<small>4 cyc</small></div><div class="tok"></div></div>
+        <div class="rprog"><i></i></div>
+        <div class="rfoot"><span class="rins"></span><span class="rstat"></span></div>
+      </div>
+      <p class="note">The race clock counts sequential cycles from the latency table. The overlap-aware totals are 28 vs 22. Both programs match <code>mdtsim --perf</code>.</p>
+    </div>
+
+    <!-- Sim 4: team relay -->
+    <div class="card sim" id="simD">
+      <div class="sim-head">
+        <div><div class="sim-k">Simulation 4</div><h3>The team relay: Phase 1 → Phase 2</h3></div>
+        <div class="sim-ctrl">
+          <button class="btn pri" type="button" id="dPlay">Play relay ▸</button>
+          <button class="btn" type="button" id="dStep">Step</button>
+          <button class="btn" type="button" id="dPrev" aria-label="Previous person">←</button>
+          <button class="btn" type="button" id="dNext" aria-label="Next person">→</button>
+        </div>
+      </div>
+      <p class="muted small" style="margin:8px 0 0;max-width:74ch">The program is handed down the pipeline from one teammate to the next. At each stop the same input runs through that person's Phase 1 work, then their Phase 2 work, so you can see exactly what changed.</p>
+      <div class="relay-track" id="dTrack"><div class="baton" id="baton">layer.mtx</div></div>
+      <div class="relay-stage">
+        <div class="col">
+          <div class="rp-who"><span class="av" id="dAv"></span><div><h3 id="dName"></h3><div class="meta" id="dMeta"></div></div></div>
+          <div class="lbl">Receives · <span id="dRecv"></span></div>
+          <pre class="code" id="dIn"></pre>
+          <div class="po">
+            <div class="pbox p1" id="dP1"><div class="ph"><span>Phase 1</span><span id="dP1t"></span></div><pre class="code" id="dP1c"></pre></div>
+            <div class="pbox p2" id="dP2"><div class="ph"><span>Phase 2 · new</span><span id="dP2t"></span></div><pre class="code" id="dP2c"></pre></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="lbl">Phase 1 had</div><ul class="was" id="dWas"></ul>
+          <div class="lbl">New in Phase 2</div><div class="deltas" id="dDel"></div>
+          <div class="rev" id="dEv"></div>
+        </div>
+      </div>
+      <div class="caption" id="dCap" aria-live="polite"></div>
+      <div class="board" id="dBoard">
+        <div class="bhead"><span>What changed</span><span>Phase 1</span><span></span><span>Phase 2</span><span>Owner</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LANGUAGE -->
+<section id="language">
+  <div class="wrap">
+    <div class="eyebrow">01 <b>·</b> The language</div>
+    <h2>Shape <em>is</em> the type</h2>
+    <p class="lede">Every value in MatrixDSL carries its dimensions. <code>matmul</code> of a 4×3 by a 4×4 is not a runtime crash — it's a compile error. Phase 2 adds a batch dimension and <code>softmax</code>, turning a matrix calculator into something that can describe a neural-network layer.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th></th><th>Phase 1 · Review 1</th><th>Phase 2 · Review 2</th></tr></thead>
+        <tbody>
+          <tr><td class="rowh">Data</td><td><code>matrix A[4][4];</code> — 2-D only</td><td class="p2"><code>tensor X[8][4][4];</code> — leading batch dimension</td></tr>
+          <tr><td class="rowh">Builtins</td><td><code>matmul</code> <code>transpose</code> <code>relu</code>, and <code>+ − *</code></td><td class="p2">adds <code>softmax</code></td></tr>
+          <tr><td class="rowh">Type rules</td><td>Inner dimensions must agree; element-wise ops need equal shapes</td><td class="p2">Batch broadcast: batches equal, or one side is 1</td></tr>
+          <tr><td class="rowh">Middle-end</td><td>AST lowers straight toward LLVM IR</td><td class="p2">Tensor IR in between, with an operator fusion pass</td></tr>
+          <tr><td class="rowh">Target ISA</td><td>MDT, 17 instructions, 4×4 FP32 matrix registers</td><td class="p2">24 instructions: fused matmul, BF16 convert, row reductions</td></tr>
+          <tr><td class="rowh">Memory</td><td>DRAM ↔ registers</td><td class="p2">DRAM ↔ 64 KiB scratchpad ↔ registers</td></tr>
+          <tr><td class="rowh">Measurement</td><td>Functional simulator</td><td class="p2">Simulator + analytical performance model</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card checker">
+      <div>
+        <h3>Try the shape checker</h3>
+        <p class="muted small" style="margin:6px 0 16px">Same rules Parth's semantic analyser enforces: <code>[batch][rows][cols]</code>, batch 1 means a plain matrix.</p>
+        <div class="operands">
+          <div class="opnd"><label for="aB">Left operand</label>
+            <div class="dims">[<select id="aB"><option>1</option><option selected>8</option><option>4</option></select>][<select id="aR"><option selected>4</option><option>8</option></select>][<select id="aC"><option selected>4</option><option>3</option><option>8</option></select>]</div></div>
+          <div class="opnd"><label for="op">Operation</label>
+            <select id="op"><option value="matmul" selected>matmul</option><option value="add">+</option></select></div>
+          <div class="opnd"><label for="bB">Right operand</label>
+            <div class="dims">[<select id="bB"><option selected>1</option><option>8</option><option>4</option></select>][<select id="bR"><option selected>4</option><option>3</option><option>8</option></select>][<select id="bC"><option selected>4</option><option>8</option></select>]</div></div>
+        </div>
+      </div>
+      <div class="verdict ok" id="verdict" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="eyebrow">02 <b>·</b> The pipeline</div>
+    <h2>Follow <em>one line</em> through every stage</h2>
+    <p class="lede">The running example is a single neural-network layer: <code>Y = relu(matmul(A, B) + C)</code>. Pick a stage to see exactly what the compiler holds at that point, who built it, and how finished it is.</p>
+    <div class="legend">
+      <span class="st impl">Implemented</span><span class="st dev">In development</span><span class="st prop">Proposed</span><span class="st fut">Future</span>
+    </div>
+    <div class="pipe">
+      <div class="rail" id="rail" role="tablist" aria-label="Compiler stages"></div>
+      <div class="card panel" id="panel" role="tabpanel"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FUSION -->
+<section id="fusion">
+  <div class="wrap">
+    <div class="eyebrow">03 <b>·</b> Operator fusion</div>
+    <h2>Fuse only when <em>nobody else</em> is watching</h2>
+    <p class="lede">The fusion pass rewrites a producer–consumer pair into one Tier 2 op — but only when the intermediate value has exactly one use. Fusing a value that something else still reads would force it to be computed twice. These four cases are the pass's full behaviour.</p>
+    <div class="fx-top">
+      <div class="seg" id="fxSeg" role="group" aria-label="Fusion pattern"></div>
+      <span class="st impl">Implemented · FusionPass.cpp</span>
+    </div>
+    <div class="fx-grid">
+      <div class="card fx-col"><h4>Tensor IR · before</h4><pre class="code" data-lang="tir" id="fxBefore"></pre></div>
+      <div class="card fx-col"><h4>Tensor IR · after pass</h4><pre class="code" data-lang="tir" id="fxAfter"></pre></div>
+      <div class="card fx-col"><h4>MDT lowering</h4><pre class="code" data-lang="asm" id="fxAsm"></pre></div>
+    </div>
+    <div class="card fx-verdict">
+      <div class="fx-count" id="fxCount"></div>
+      <div id="fxWhy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- MEMORY -->
+<section id="memory">
+  <div class="wrap">
+    <div class="eyebrow">04 <b>·</b> Memory hierarchy</div>
+    <h2>Same math, <em>different path</em> to memory</h2>
+    <p class="lede">Both programs below compute three 4×4 matmuls on the same tile. The only difference: the first fetches it from DRAM every time; the second fetches once, stages it in the scratchpad, and reuses it. Step through them and watch the counters.</p>
+
+    <div class="mem">
+      <div class="card levels" id="levels">
+        <div class="lvl" data-l="dram"><span class="ln1">DRAM</span><span class="lat">8 cycles</span><span class="ln2">Main memory. Every <code>LOAD</code>/<code>STORE</code> of a tile moves 64 bytes.</span></div>
+        <div class="arrow">↕ LOAD / STORE</div>
+        <div class="lvl" data-l="sp"><span class="ln1">Scratchpad · 64 KiB</span><span class="lat">1 cycle</span><span class="ln2">Software-managed: the compiler decides what lives here. Reached via <code>SCRATCHLOAD</code>/<code>SCRATCHSTORE</code>.</span></div>
+        <div class="arrow">↕ SCRATCHLOAD / SCRATCHSTORE</div>
+        <div class="lvl" data-l="reg"><span class="ln1">Matrix registers M0–M7</span><span class="lat">8 × 64 B</span><span class="ln2">Each holds one 4×4 FP32 tile. No instruction goes memory-to-memory.</span></div>
+        <div class="arrow">↕</div>
+        <div class="lvl" data-l="unit"><span class="ln1">Matrix unit</span><span class="lat">4 cycles</span><span class="ln2"><code>MATMUL</code>, <code>MATMULACC</code>, <code>MATMULRELU</code> on 4×4 tiles.</span></div>
+      </div>
+
+      <div class="card stepper">
+        <div class="ctrls">
+          <div class="seg" id="progSeg" role="group" aria-label="Program">
+            <button type="button" data-p="naive" aria-pressed="true">tiling_naive.s</button>
+            <button type="button" data-p="sp" aria-pressed="false">tiling_scratchpad.s</button>
+          </div>
+        </div>
+        <pre class="code" data-lang="asm" id="progCode"></pre>
+        <div class="ctrls">
+          <button class="btn pri" id="runBtn" type="button">Run ▸</button>
+          <button class="btn" id="stepBtn" type="button">Step</button>
+          <button class="btn" id="resetBtn" type="button">Reset</button>
+        </div>
+        <dl class="counters">
+          <div><dt>Executed</dt><dd id="cIns">0</dd></div>
+          <div><dt>Sequential cycles</dt><dd id="cCyc">0</dd></div>
+          <div><dt>DRAM bytes</dt><dd id="cDram">0</dd></div>
+          <div><dt>Scratchpad bytes</dt><dd id="cSp">0</dd></div>
+        </dl>
+        <div class="runs">
+          <div class="lane"><span class="lb">Sequential</span><div class="bars" id="seqBars"></div><span class="val" id="seqVal"></span></div>
+          <div class="lane"><span class="lb">Overlap-aware</span><div class="bars" id="ovBars"></div><span class="val" id="ovVal"></span></div>
+        </div>
+        <div class="key"><span><i style="background:var(--transfer)"></i>Transfer run</span><span><i style="background:var(--compute)"></i>Compute run</span><span><i style="background:linear-gradient(180deg,var(--transfer) 50%,var(--compute) 50%)"></i>Paired: costs max(T, C)</span></div>
+      </div>
+    </div>
+
+    <div class="card compare">
+      <div class="panel-head"><h3>Head to head</h3><span class="st impl">Verified · mdtsim --perf</span></div>
+      <div id="cmp" style="margin-top:12px"></div>
+      <p class="note">The performance model is analytical, not cycle-accurate hardware. It sums a fixed latency table (DRAM 8, scratchpad 1, MATMUL family 4, vector/transpose/relu/reductions 2, scalar 1), then run-length-encodes the trace into Transfer and Compute runs and lets each adjacent pair overlap — costing max(T, C) instead of T + C. It is built for comparing code-generation strategies against each other, not for predicting silicon.</p>
+    </div>
+
+    <div class="card calc">
+      <div class="panel-head"><h3>Why tiling matters at scale</h3><span class="st prop">Tiling pass · Review 3</span></div>
+      <p class="muted" style="margin:8px 0 16px;max-width:70ch">A matrix unit that only understands 4×4 tiles has to break a large matmul into many small ones. Drag to see how quickly DRAM traffic explodes without reuse — the problem a tiling pass exists to solve.</p>
+      <label for="nRange" class="small muted">Square matrix size N × N</label>
+      <input type="range" id="nRange" min="0" max="5" step="1" value="3">
+      <div class="ticks"><span>8</span><span>16</span><span>32</span><span>64</span><span>128</span><span>256</span></div>
+      <dl class="calc-out">
+        <div><dt>4×4 tile MATMULs</dt><dd id="kT"></dd></div>
+        <div><dt>A + B + C footprint</dt><dd id="kF"></dd></div>
+        <div><dt>DRAM traffic, no reuse</dt><dd id="kN"></dd></div>
+        <div><dt>DRAM traffic, each byte once</dt><dd id="kS"></dd></div>
+      </dl>
+      <p class="note" id="kNote"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ISA -->
+<section id="isa">
+  <div class="wrap">
+    <div class="eyebrow">05 <b>·</b> The target</div>
+    <h2>MDT, a machine <em>shaped like the problem</em></h2>
+    <p class="lede">MDT (MatrixDSL Target) is a 32-bit load/store ISA with a dedicated matrix register class. It exists as a specification, an assembler, and <code>mdtsim</code> — a C++ simulator that executes it and reports the performance model. There is no physical chip.</p>
+
+    <div class="regs">
+      <div class="card rf"><h4>Scalar R0–R15</h4><p>32-bit. Addresses, loop counters, BF16 conversion.</p><div class="cells r" id="rR"></div></div>
+      <div class="card rf"><h4>Vector V0–V7</h4><p>128-bit, 4 × FP32 lanes. Row results from reductions.</p><div class="cells v" id="rV"></div></div>
+      <div class="card rf"><h4>Matrix M0–M7</h4><p>4 × 4 FP32 = 64 bytes each. The unit of work.</p><div class="cells m" id="rM"></div></div>
+    </div>
+
+    <div class="isa-filter">
+      <div class="seg" id="isaSeg" role="group" aria-label="Filter instructions">
+        <button type="button" data-f="all" aria-pressed="true">All 24</button>
+        <button type="button" data-f="1" aria-pressed="false">Phase 1 · 17</button>
+        <button type="button" data-f="2" aria-pressed="false">Phase 2 · 7</button>
+      </div>
+      <span class="small muted"><code>SCRATCHLOAD</code>/<code>SCRATCHSTORE</code> are pseudo-ops: <code>LOAD</code>/<code>STORE</code> with the address-space bit set. <code>exp</code> is a runtime call, not an instruction.</span>
+    </div>
+    <div class="tbl-wrap" style="margin-top:14px">
+      <table class="isa-tbl">
+        <thead><tr><th>Opcode</th><th>Instruction</th><th>Class</th><th>What it does</th><th class="num">Latency</th></tr></thead>
+        <tbody id="isaBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRECISION -->
+<section id="precision">
+  <div class="wrap">
+    <div class="eyebrow">06 <b>·</b> Mixed precision</div>
+    <h2>BF16: keep the range, <em>drop the tail</em></h2>
+    <p class="lede">BF16 is the top half of an FP32: same sign, same 8-bit exponent, only 7 mantissa bits. MDT's <code>CVT.F32.BF16</code> is literally <code>Rd = Rs &amp; 0xFFFF0000</code> — storage halves, range survives. Compute stays FP32. Type a number to see what survives.</p>
+    <div class="card" style="padding:22px;margin-top:28px">
+      <div class="prec-in">
+        <label for="fIn" class="small muted">FP32 value</label>
+        <input id="fIn" type="text" value="3.14159265" inputmode="decimal" autocomplete="off">
+        <div class="seg" role="group" aria-label="Examples">
+          <button type="button" data-v="3.14159265" aria-pressed="false">π</button>
+          <button type="button" data-v="0.1" aria-pressed="false">0.1</button>
+          <button type="button" data-v="65504" aria-pressed="false">65504</button>
+          <button type="button" data-v="1e30" aria-pressed="false">1e30</button>
+        </div>
+      </div>
+      <div class="bits" id="bits" aria-label="FP32 bit pattern"></div>
+      <div class="bitlab"><span>sign</span><span>exponent (8)</span><span>mantissa (23) — BF16 keeps the first 7</span></div>
+      <dl class="kv">
+        <div><dt>FP32 bits</dt><dd id="pHex"></dd></div>
+        <div><dt>BF16 bits</dt><dd id="pBf"></dd></div>
+        <div><dt>Back as FP32</dt><dd id="pBack"></dd></div>
+        <div><dt>Relative error</dt><dd id="pErr"></dd></div>
+      </dl>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Format</th><th>Bits</th><th>Role in MatrixDSL</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="rowh">FP32</td><td class="num">32</td><td>All arithmetic; every matrix register</td><td><span class="st impl">Implemented</span></td></tr>
+          <tr><td class="rowh">BF16</td><td class="num">16</td><td>Storage format via <code>CVT.F32.BF16</code> / <code>CVT.BF16.F32</code></td><td><span class="st impl">Implemented</span></td></tr>
+          <tr><td class="rowh">FP16</td><td class="num">16</td><td>Narrower range than BF16; would need its own converter</td><td><span class="st fut">Future</span></td></tr>
+          <tr><td class="rowh">INT8 / INT4</td><td class="num">8 / 4</td><td>Quantised inference; needs scale factors and an integer datapath</td><td><span class="st fut">Future</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team">
+  <div class="wrap">
+    <div class="eyebrow">07 <b>·</b> Who built what</div>
+    <h2>Four people, <em>one pipeline</em></h2>
+    <p class="lede">Each stage has one owner and one branch. Interfaces between stages were frozen as headers on <code>main</code> at Review 1, so everyone could build in parallel against a fixed contract.</p>
+    <div class="team">
+      <article class="card member">
+        <div class="who"><h3>Vinay A</h3><span class="id">24BCB0131 · Vinay-A</span></div>
+        <span class="role">Lexer · Parser · AST</span>
+        <ul>
+          <li>Hand-written lexer and recursive-descent parser</li>
+          <li>Phase 2: <code>tensor</code> declarations with a batch dimension, <code>softmax</code> builtin</li>
+          <li>Panic-mode recovery — one missing semicolon is one error, not a cascade</li>
+        </ul>
+        <div class="ev"><span class="st impl">28/28 CTest</span><span><code>mtxparse</code> AST dumper</span></div>
+      </article>
+      <article class="card member">
+        <div class="who"><h3>Mudpe Parth Tulsidas</h3><span class="id">24BDS0353 · parth</span></div>
+        <span class="role">Semantic analysis · Symbol table</span>
+        <ul>
+          <li>Shape inference: every expression's result dimensions checked at compile time</li>
+          <li>Phase 2: batch-broadcast rule, <code>checkSoftmax</code></li>
+          <li>Scoped symbol table with redeclaration and use-before-declare errors</li>
+        </ul>
+        <div class="ev"><span class="st impl">Implemented</span><span><code>mtxcheck</code> checker tool</span></div>
+      </article>
+      <article class="card member">
+        <div class="who"><h3>Kandi Jeevitesh Reddy</h3><span class="id">24BCE0350 · Jeevitesh</span></div>
+        <span class="role">Tensor IR · Optimisation · LLVM IR</span>
+        <ul>
+          <li>Tensor IR: 19 op kinds in two tiers (13 core, 6 fused / memory-aware)</li>
+          <li>Fusion pass with a use-count guard, not just adjacency</li>
+          <li>Next: AST → Tensor IR lowering and LLVM IR emission</li>
+        </ul>
+        <div class="ev"><span class="st impl">Implemented</span><span><code>mtxtensorir</code> positive + negative demo</span></div>
+      </article>
+      <article class="card member">
+        <div class="who"><h3>Shreyas Mandem</h3><span class="id">24BCE0381 · Shreyas</span></div>
+        <span class="role">MDT ISA · Backend · Simulator</span>
+        <ul>
+          <li>MDT ISA spec, 17 → 24 instructions; assembler and <code>mdtsim</code> in C++</li>
+          <li>Scratchpad address space, BF16 conversion, row reductions</li>
+          <li>Overlap-aware analytical performance model (<code>--perf</code>)</li>
+        </ul>
+        <div class="ev"><span class="st impl">17/17 backend tests</span><span>LLVM <code>.td</code> target description</span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="eyebrow">08 <b>·</b> Where it stands</div>
+    <h2>Done, doing, <em>and not claimed</em></h2>
+    <div class="road">
+      <div><span class="st impl">Review 1 · done</span><h4>Foundations</h4><ul><li>Language spec and grammar</li><li>MDT ISA, 17 instructions</li><li>Architecture and frozen interfaces</li><li>Lexer, checker, simulator bring-up</li></ul></div>
+      <div><span class="st impl">Review 2 · done</span><h4>Phase 2</h4><ul><li><code>tensor</code>, batch semantics, <code>softmax</code></li><li>Tensor IR + fusion pass</li><li>7 new MDT instructions, scratchpad</li><li>Performance model, tiling ablation</li></ul></div>
+      <div><span class="st dev">Review 3 · next</span><h4>Close the loop</h4><ul><li>AST → Tensor IR lowering</li><li>Tiling pass over 4×4 tiles</li><li>LLVM IR emission, fused ops → <code>MATMULACC</code>/<code>MATMULRELU</code></li><li>4-config ablation: fusion × scratchpad</li></ul></div>
+      <div><span class="st fut">Beyond</span><h4>If time allows</h4><ul><li>FP16 / INT8 formats</li><li>Larger or configurable tile size</li><li>Double-buffered scratchpad transfers</li></ul></div>
+    </div>
+    <div class="honest">
+      <div class="card"><h3>What's actually new here</h3><ul>
+        <li>The language, IR and ISA were designed <em>together</em> — MDT's fused instructions exist because the fusion pass produces those exact patterns.</li>
+        <li>A use-count-guarded fusion pass small enough to read in one sitting.</li>
+        <li>A measurable ablation: same program, with and without scratchpad reuse, compared on instructions, bytes moved and estimated cycles.</li>
+      </ul></div>
+      <div class="card"><h3>What this is not</h3><ul>
+        <li>Not MLIR. Tensor IR is a hand-rolled C++ IR, inspired by MLIR's <code>linalg</code>/<code>vector</code> layering.</li>
+        <li>Not cycle-accurate. The cycle numbers come from an analytical model with a fixed latency table.</li>
+        <li>Not hardware, and not a TPU. It borrows ideas real accelerators use — matrix units, software-managed SRAM, epilogue fusion — at teaching scale.</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- VIVA -->
+<section id="viva">
+  <div class="wrap">
+    <div class="eyebrow">09 <b>·</b> Questions we expect</div>
+    <h2>Viva, <em>answered in advance</em></h2>
+    <div class="qa">
+      <details><summary>Why build your own Tensor IR instead of using MLIR?</summary><p>MLIR is the right tool at production scale, but it would take most of the semester to learn its infrastructure. A 19-op C++ IR lets every member read the whole thing. The structure deliberately mirrors MLIR's idea — a tensor-level layer above LLVM where shapes are still visible — so fusion and tiling happen before that information is lost.</p></details>
+      <details><summary>Are the cycle counts real?</summary><p>They are real outputs of our model, not of hardware. <code>mdtsim --perf</code> sums a fixed latency table and applies a transfer/compute overlap rule. The numbers are meaningful relative to each other — naive vs. scratchpad, fused vs. unfused — and not as absolute predictions.</p></details>
+      <details><summary>Why does fusion check the use count?</summary><p>If <code>matmul(A,B)</code> is consumed by <code>relu</code> and also printed, fusing it into <code>MATMULRELU</code> would mean the plain product no longer exists for the print. You'd have to compute it twice. So the pass only fuses when the intermediate has exactly one use — <code>mtxtensorir</code> has a negative test for exactly this.</p></details>
+      <details><summary>Why a scratchpad instead of a cache?</summary><p>A cache guesses what to keep; a scratchpad is told. Because the compiler knows the whole access pattern of a matmul, it can place tiles explicitly and get predictable 1-cycle access. That's the same trade real accelerators make with on-chip SRAM.</p></details>
+      <details><summary>How does a 256×256 matmul run on a 4×4 matrix unit?</summary><p>It's broken into 4×4 tiles: 64 tiles per side, so 64³ = 262,144 tile-level MATMUL/MATMULACC operations. Doing that efficiently — deciding which tiles stay in the scratchpad — is the job of the Review 3 tiling pass.</p></details>
+      <details><summary>Why is BF16 conversion just a bit mask?</summary><p>BF16 was designed as the upper 16 bits of FP32: identical sign and exponent, truncated mantissa. Converting is dropping the low 16 bits; converting back is shifting them in as zeros. Range is preserved, precision drops to about 2–3 significant digits, and MDT still computes in FP32.</p></details>
+      <details><summary>Where does <code>exp</code> for softmax come from?</summary><p>A runtime call, <code>mdt_softmax_exp</code>. The ISA provides what softmax needs around it — <code>MROWMAX</code> for numerical stability, <code>MROWSUM</code> and <code>VREDSUM</code> for the denominator — but a transcendental function isn't worth a hardware instruction at this scale.</p></details>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>MatrixDSL · Team 13 · BCSE307P Compiler Design</span>
+    <a href="https://github.com/shreyasmandem/MatrixDSL">github.com/shreyasmandem/MatrixDSL</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- highlighter ---------- */
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+var RULES={
+  asm:[[";.*","c"],["\\b[RVM]\\d+\\b","r"],["\\.[a-z]+\\b","d"],["\\b[A-Z][A-Z0-9]*(?:\\.[A-Z0-9]+)*\\b","k"],["\\b\\d+(?:\\.\\d+)?\\b","n"],["\\b[a-z_]\\w*:","l"]],
+  mtx:[["//.*","c"],["\\b(?:matrix|tensor|print)\\b","k"],["\\b(?:matmul|transpose|relu|softmax)\\b","f"],["\\b\\d+(?:\\.\\d+)?\\b","n"]],
+  tir:[[";.*","c"],["%\\d+","r"],["\\b[A-Z]\\w*\\b","k"],["\\b\\d+x\\d+(?:x\\d+)?\\b","n"]],
+  llvm:[[";.*","c"],["@[\\w.]+","f"],["%[\\w.]+","r"],["\\b(?:define|call|void|ptr|alloca|ret|declare|align|float|i64|i1|entry)\\b","k"],["\\b\\d+\\b","n"]],
+  tok:[["\\([^)]*\\)","r"],["\\b[A-Z_]{2,}\\b","k"],["·.*","c"]],
+  tree:[["[├└│─]+","c"],["\\b(?:Program|MatrixDecl|Assign|CallExpr|BinaryExpr|Var|Print)\\b","k"],["\\b\\d+x\\d+\\b","n"],["\\b(?:matmul|relu)\\b","f"]]
+};
+function hlLine(line,rules){
+  var re=new RegExp(rules.map(function(r){return "("+r[0]+")"}).join("|"),"g"),out="",last=0,m;
+  while((m=re.exec(line))!==null){
+    if(m[0]===""){re.lastIndex++;continue}
+    var idx=0;for(var i=1;i<=rules.length;i++){if(m[i]!==undefined){idx=i-1;break}}
+    out+=esc(line.slice(last,m.index))+'<span class="'+rules[idx][1]+'">'+esc(m[0])+"</span>";
+    last=m.index+m[0].length;
+  }
+  return out+esc(line.slice(last));
+}
+function render(el,src,lang,flags){
+  flags=flags||{};
+  el.innerHTML=src.split("\n").map(function(l,i){
+    var cls="ln"+(flags[i]?" "+flags[i]:"");
+    return '<span class="'+cls+'">'+(hlLine(l,RULES[lang]||[])||" ")+"</span>";
+  }).join("");
+}
+
+/* ---------- shared program ---------- */
+var SRC=["matrix A[4][4];","matrix B[4][4];","matrix C[4][4];","matrix Y[4][4];","","Y = relu(matmul(A, B) + C);","print(Y);"].join("\n");
+var ASM=[
+"ADD       R1, R0, 0       ; &A",
+"ADD       R2, R0, 64      ; &B",
+"ADD       R3, R0, 128     ; &C",
+"ADD       R4, R0, 192     ; &Y",
+"LOAD      M1, [R1 + 0]    ; A tile",
+"LOAD      M2, [R2 + 0]    ; B tile",
+"LOAD      M0, [R3 + 0]    ; accumulator starts as C",
+"MATMULACC M0, M1, M2      ; M0 = C + A x B",
+"RELU      M0, M0",
+"STORE     M0, [R4 + 0]    ; Y",
+"HALT"].join("\n");
+
+/* ---------- perf model (mirrors MDTSim.cpp finalizePerformanceModel) ---------- */
+function perf(prog){
+  var runs=[];
+  prog.forEach(function(p){if(!p.lat&&p.lat!==0)return;if(p.cls==="O")return;
+    if(runs.length&&runs[runs.length-1].cls===p.cls)runs[runs.length-1].cyc+=p.lat;else runs.push({cls:p.cls,cyc:p.lat})});
+  var seq=runs.reduce(function(a,r){return a+r.cyc},0),groups=[],total=0,i=0;
+  while(i<runs.length){
+    if(i+1<runs.length&&runs[i+1].cls!==runs[i].cls){var c=Math.max(runs[i].cyc,runs[i+1].cyc);groups.push({pair:true,cyc:c,a:runs[i],b:runs[i+1]});total+=c;i+=2}
+    else{groups.push({pair:false,cyc:runs[i].cyc,a:runs[i]});total+=runs[i].cyc;i++}
+  }
+  return {runs:runs,seq:seq,groups:groups,ov:total};
+}
+var HERO_PROG=[
+  {cls:"C",lat:1},{cls:"C",lat:1},{cls:"C",lat:1},{cls:"C",lat:1},
+  {cls:"T",lat:8,dram:64},{cls:"T",lat:8,dram:64},{cls:"T",lat:8,dram:64},
+  {cls:"C",lat:4},{cls:"C",lat:2},{cls:"T",lat:8,dram:64}
+];
+
+/* ---------- hero ---------- */
+var STAGES_SHORT=["lex","parse","sema","tensor ir","fuse","llvm ir","isel","mdt asm","sim"];
+var ticker=$("#ticker");
+ticker.innerHTML=STAGES_SHORT.map(function(s){return '<span class="done">'+s+"</span>"}).join("");
+render($("#heroSrc"),SRC,"mtx",{5:"hot"});
+render($("#heroAsm"),ASM,"asm",{7:"hot"});
+var heroTimer=null;
+$("#compileBtn").addEventListener("click",function(){
+  clearInterval(heroTimer);
+  var spans=$$("span",ticker),lines=$$(".ln",$("#heroAsm")),step=0;
+  spans.forEach(function(s){s.className=""});
+  lines.forEach(function(l){l.classList.add("dim");l.classList.remove("hot")});
+  var btn=this;btn.disabled=true;
+  heroTimer=setInterval(function(){
+    if(step<spans.length){spans.forEach(function(s,i){s.className=i<step?"done":i===step?"on":""});step++;return}
+    var k=step-spans.length;
+    if(k<lines.length){lines[k].classList.remove("dim");step++;return}
+    spans.forEach(function(s){s.className="done"});lines[7].classList.add("hot");
+    clearInterval(heroTimer);btn.disabled=false;
+  },reduce?30:170);
+});
+
+/* ---------- shape checker ---------- */
+function shapeStr(b,r,c){return (b>1?b+"×":"")+r+"×"+c}
+function check(){
+  var a={b:+$("#aB").value,r:+$("#aR").value,c:+$("#aC").value},b={b:+$("#bB").value,r:+$("#bR").value,c:+$("#bC").value},op=$("#op").value,v=$("#verdict");
+  var expr=op==="matmul"?"matmul(X, W)":"X + W";
+  var batchOk=a.b===b.b||a.b===1||b.b===1,outB=Math.max(a.b,b.b);
+  var err=null,res=null,why="";
+  if(!batchOk)err="Batch "+a.b+" and batch "+b.b+" can't broadcast — they must match, or one must be 1.";
+  else if(op==="matmul"){
+    if(a.c!==b.r)err="Inner dimensions disagree: left has "+a.c+" columns, right has "+b.r+" rows.";
+    else{res=shapeStr(outB,a.r,b.c);why="(rows of left) × (cols of right)"+(a.b!==b.b?", batch broadcast "+Math.min(a.b,b.b)+" → "+outB:"")+"."}
+  }else{
+    if(a.r!==b.r||a.c!==b.c)err="Element-wise + needs equal matrix shapes: "+a.r+"×"+a.c+" vs "+b.r+"×"+b.c+".";
+    else{res=shapeStr(outB,a.r,a.c);why="Shapes match"+(a.b!==b.b?"; batch broadcast "+Math.min(a.b,b.b)+" → "+outB:"")+"."}
+  }
+  var decl="X : "+shapeStr(a.b,a.r,a.c)+"   W : "+shapeStr(b.b,b.r,b.c);
+  if(err){v.className="verdict err";v.innerHTML='<span class="big">✕ compile error</span>'+esc(err)+'<div class="small muted" style="margin-top:8px;font-family:var(--mono)">'+esc(decl)+"  →  "+esc(expr)+"</div>"}
+  else{v.className="verdict ok";v.innerHTML='<span class="big">✓ '+esc(expr)+" : "+res+"</span>"+esc(why)+'<div class="small muted" style="margin-top:8px;font-family:var(--mono)">'+esc(decl)+"</div>"}
+}
+["aB","aR","aC","bB","bR","bC","op"].forEach(function(id){$("#"+id).addEventListener("change",check)});
+check();
+
+/* ---------- pipeline ---------- */
+var hp=perf(HERO_PROG);
+var STAGES=[
+ {n:"Source",o:"Vinay A",st:"impl",f:"examples/*.mtx",d:"Four declarations and one expression. Every matrix has its shape written into its declaration — that's the only type information the compiler will ever need.",lang:"mtx",code:SRC},
+ {n:"Lexer",o:"Vinay A",st:"impl",f:"compiler/frontend/lexer/Lexer.cpp",d:"The character stream becomes tokens. Builtins like relu and matmul are keywords, not identifiers — the lexer already knows the language's vocabulary. Phase 2 added TENSOR and SOFTMAX.",lang:"tok",code:"MATRIX IDENTIFIER(A) LBRACKET INT(4) RBRACKET LBRACKET INT(4) RBRACKET SEMICOLON\n· · · same for B, C, Y · · ·\nIDENTIFIER(Y) ASSIGN RELU LPAREN\n  MATMUL LPAREN IDENTIFIER(A) COMMA IDENTIFIER(B) RPAREN\n  PLUS IDENTIFIER(C) RPAREN SEMICOLON\nPRINT LPAREN IDENTIFIER(Y) RPAREN SEMICOLON\nEND_OF_FILE"},
+ {n:"Parser · AST",o:"Vinay A",st:"impl",f:"compiler/frontend/parser/Parser.cpp",d:"Recursive descent builds a tree. Precedence falls out of the grammar: the + sits above the matmul call, and relu wraps both. On a syntax error the parser recovers at the next semicolon and keeps going.",lang:"tree",code:"Program\n├─ MatrixDecl(A, 4x4)\n├─ MatrixDecl(B, 4x4)\n├─ MatrixDecl(C, 4x4)\n├─ MatrixDecl(Y, 4x4)\n├─ Assign(Y)\n│  └─ CallExpr(relu)\n│     └─ BinaryExpr(+)\n│        ├─ CallExpr(matmul, [Var A, Var B])\n│        └─ Var C\n└─ Print(Var Y)",note:"Tree view of the AST; mtxparse prints the same structure in its own dump format."},
+ {n:"Semantic analysis",o:"Mudpe Parth Tulsidas",st:"impl",f:"compiler/frontend/semantic/MatrixType.cpp",d:"Walks the tree bottom-up, inferring a shape for every node and checking each rule. If any check fails, compilation stops here with a precise error — nothing below this line ever sees an ill-shaped program.",html:true},
+ {n:"Tensor IR",o:"Kandi Jeevitesh Reddy",st:"impl",f:"compiler/tensor-ir/TensorIR.cpp",d:"A flat list of typed tensor operations in SSA form: each op names its operands by id and carries its result shape. This is the level where optimisations still understand 'matrix multiply' as one thing.",lang:"tir",code:"%0 = Load : 4x4          ; A\n%1 = Load : 4x4          ; B\n%2 = Load : 4x4          ; C\n%3 = MatMul %0 %1 : 4x4\n%4 = Add %3 %2 : 4x4\n%5 = Relu %4 : 4x4",note:"Printed in TensorFunction::dump() format. The graph is hand-built in mtxtensorir today — automatic AST → Tensor IR lowering is a Review 3 target."},
+ {n:"Fusion pass",o:"Kandi Jeevitesh Reddy",st:"impl",f:"compiler/tensor-ir/FusionPass.cpp",d:"%3 (MatMul) has exactly one use — the Add — so MatMul → Add collapses into FusedMatMulAcc. Relu now reads a fused op, not a MatMul, so it stays separate: the pass matches one producer–consumer pair at a time.",lang:"tir",code:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4\n%3 = MatMul %0 %1 : 4x4                ; dead - no uses left\n%4 = FusedMatMulAcc %0 %1 %2 : 4x4\n%5 = Relu %4 : 4x4",flags:{3:"dead",4:"hot"},note:"runFusionPass returns 1 for this graph."},
+ {n:"LLVM IR",o:"Kandi Jeevitesh Reddy",st:"dev",f:"compiler/llvm/",d:"Fused tensor ops become calls to reserved intrinsics that LLVM treats as opaque. That lets LLVM's -O2 optimise the scalar and address code around them without trying to understand a matrix multiply.",lang:"llvm",code:"define void @main() {\nentry:\n  %A = alloca [16 x float], align 16\n  ; ... %B, %C, %Y likewise ...\n  call void @llvm.memcpy.p0.p0.i64(ptr %Y, ptr %C, i64 64, i1 false)\n  call void @mdt.matmul_acc.4x4(ptr %Y, ptr %A, ptr %B)   ; Y += A x B\n  call void @mdt.relu.4x4(ptr %Y, ptr %Y)\n  ret void\n}",note:"Design target from docs/llvm-backend.md. IR emission is being built for Review 3."},
+ {n:"Instruction selection",o:"Shreyas Mandem",st:"dev",f:"llvm-backend/MDT/*.td",d:"The MDT backend's lowering intercepts each reserved intrinsic and replaces it with one matrix instruction. Ordinary scalar code is matched by TableGen patterns.",lang:"asm",code:"; intrinsic                 -> MDT instruction\n; @mdt.matmul.4x4           -> MATMUL\n; @mdt.matmul_acc.4x4       -> MATMULACC\n; @mdt.matmul_relu.4x4      -> MATMULRELU\n; @mdt.relu.4x4             -> RELU\n; @mdt.transpose.4x4        -> TRANSPOSE",note:"TableGen target description exists; the end-to-end LLVM → MDT path is in development."},
+ {n:"MDT assembly",o:"Shreyas Mandem",st:"impl",f:"tools/mdtsim/Assembler.cpp",d:"Registers, addresses and one fused instruction. Three tiles come in from DRAM, one goes back out. The intermediate A × B never leaves the matrix register file.",lang:"asm",code:ASM,flags:{7:"hot"},note:"Assembler and ISA are implemented; this listing is hand-lowered from the stages above until the LLVM path is wired."},
+ {n:"Simulator",o:"Shreyas Mandem",st:"impl",f:"tools/mdtsim/MDTSim.cpp",d:"mdtsim executes the program on a model of MDT and, with --perf, reports the analytical performance model: a sequential sum of latencies and an overlap-aware estimate where adjacent transfer and compute runs hide behind each other.",html:true,note:"Computed on this page with mdtsim's latency table and pairing rule."}
+];
+function semHTML(){
+  var rows=[["matmul(A, B)","4×4 · 4×4","inner 4 = 4","4×4"],["… + C","4×4 + 4×4","shapes equal","4×4"],["relu(…)","4×4","element-wise","4×4"],["Y = …","Y declared 4×4","assignment matches","✓"]];
+  return '<div class="tbl-wrap" style="margin-top:0"><table><thead><tr><th>Node</th><th>Operands</th><th>Rule checked</th><th>Result</th></tr></thead><tbody>'+
+   rows.map(function(r){return "<tr><td><code>"+esc(r[0])+"</code></td><td class=\"num\">"+r[1]+"</td><td>"+r[2]+'</td><td class="num"><b>'+r[3]+"</b></td></tr>"}).join("")+"</tbody></table></div>";
+}
+function simHTML(){
+  var runs=hp.runs.map(function(r){return '<span class="'+r.cls+'" style="flex:'+r.cyc+'">'+r.cls+" "+r.cyc+"</span>"}).join("");
+  var ov=hp.groups.map(function(g){return '<span class="'+(g.pair?"P":g.a.cls)+'" style="flex:'+g.cyc+'">'+(g.pair?"max("+g.a.cyc+","+g.b.cyc+")":g.cyc)+"</span>"}).join("");
+  var max=hp.seq;
+  return '<div class="runs"><div class="lane"><span class="lb">Sequential</span><div class="bars">'+runs+'</div><span class="val">'+hp.seq+'</span></div>'+
+   '<div class="lane"><span class="lb">Overlap-aware</span><div class="bars" style="width:'+(hp.ov/max*100)+'%">'+ov+'</div><span class="val">'+hp.ov+"</span></div></div>"+
+   '<dl class="counters" style="margin-top:16px"><div><dt>Instructions</dt><dd>10 + HALT</dd></div><div><dt>DRAM bytes</dt><dd>256</dd></div><div><dt>Sequential</dt><dd>'+hp.seq+'</dd></div><div><dt>Overlap-aware</dt><dd>'+hp.ov+"</dd></div></dl>";
+}
+var rail=$("#rail"),panel=$("#panel"),cur=0;
+rail.innerHTML=STAGES.map(function(s,i){
+  return '<button class="stage" role="tab" type="button" id="stg'+i+'" aria-selected="false"><span class="ix">'+(i+1)+'</span><span class="nm">'+s.n+'<span class="ow">'+s.o+"</span></span></button>";
+}).join("");
+var ST_LABEL={impl:"Implemented",dev:"In development",prop:"Proposed",fut:"Future"};
+function showStage(i){
+  cur=i;var s=STAGES[i];
+  $$(".stage",rail).forEach(function(b,j){b.setAttribute("aria-selected",j===i?"true":"false");b.tabIndex=j===i?0:-1});
+  panel.innerHTML='<div class="panel-head"><h3>'+s.n+'</h3><span class="st '+s.st+'">'+ST_LABEL[s.st]+"</span></div>"+
+    '<div class="meta"><span>Owner <b>'+s.o+"</b></span><span><code>"+s.f+"</code></span></div>"+
+    "<p>"+s.d+"</p>"+
+    (s.html?(i===3?semHTML():simHTML()):'<pre class="code" id="stageCode"></pre>')+
+    (s.note?'<p class="note">'+s.note+"</p>":"")+
+    '<div class="panel-nav"><button class="btn" type="button" id="pPrev"'+(i===0?" disabled":"")+'>← '+(i>0?STAGES[i-1].n:"")+'</button><button class="btn pri" type="button" id="pNext"'+(i===STAGES.length-1?" disabled":"")+">"+(i<STAGES.length-1?STAGES[i+1].n:"End")+" →</button></div>";
+  if(!s.html)render($("#stageCode"),s.code,s.lang,s.flags);
+  $("#pPrev").onclick=function(){if(cur>0)showStage(cur-1)};
+  $("#pNext").onclick=function(){if(cur<STAGES.length-1)showStage(cur+1)};
+  panel.setAttribute("aria-labelledby","stg"+i);
+}
+$$(".stage",rail).forEach(function(b,i){
+  b.addEventListener("click",function(){showStage(i)});
+  b.addEventListener("keydown",function(e){
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();e.stopPropagation();var n=Math.max(0,Math.min(STAGES.length-1,i+(e.key==="ArrowDown"?1:-1)));showStage(n);$("#stg"+n).focus()}
+  });
+});
+showStage(4);
+
+/* ---------- fusion ---------- */
+var FX=[
+ {k:"MatMul → Relu",before:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = MatMul %0 %1 : 4x4\n%3 = Relu %2 : 4x4",after:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = MatMul %0 %1 : 4x4      ; dead\n%3 = FusedMatMulRelu %0 %1 : 4x4",af:{2:"dead",3:"hot"},
+  asm:"; unfused\nMATMUL     M3, M1, M2\nRELU       M3, M3\n\n; fused\nMATMULRELU M3, M1, M2",asf:{1:"dim",2:"dim",5:"hot"},n:1,
+  why:"<b>Fuses.</b> The MatMul's only consumer is the Relu. Two instructions become one <code>MATMULRELU</code>; in the model that's 4 + 2 = 6 cycles down to 4. This is the graph in <code>mtxtensorir</code>'s positive test."},
+ {k:"MatMul → Add",before:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4          ; bias C\n%3 = MatMul %0 %1 : 4x4\n%4 = Add %3 %2 : 4x4",after:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4\n%3 = MatMul %0 %1 : 4x4      ; dead\n%4 = FusedMatMulAcc %0 %1 %2 : 4x4",af:{3:"dead",4:"hot"},
+  asm:"LOAD       M0, [R3 + 0]  ; C\nMATMULACC  M0, M1, M2    ; M0 = C + A x B",asf:{1:"hot"},n:1,
+  why:"<b>Fuses.</b> The bias add folds into the multiply. This matters more than it looks: Phase 1 MDT has no matrix-add instruction, so an unfused add would fall back to row-by-row <code>VADD</code> through memory. <code>MATMULACC</code> keeps it in one tile operation."},
+ {k:"MatMul → Add → Relu",before:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4\n%3 = MatMul %0 %1 : 4x4\n%4 = Add %3 %2 : 4x4\n%5 = Relu %4 : 4x4",after:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4\n%3 = MatMul %0 %1 : 4x4      ; dead\n%4 = FusedMatMulAcc %0 %1 %2 : 4x4\n%5 = Relu %4 : 4x4",af:{3:"dead",4:"hot"},
+  asm:"LOAD       M0, [R3 + 0]\nMATMULACC  M0, M1, M2\nRELU       M0, M0",asf:{1:"hot"},n:1,
+  why:"<b>Partly fuses.</b> Our running example. MatMul → Add becomes <code>FusedMatMulAcc</code>; the Relu then reads a fused op, which isn't in the pattern table, so it stays a separate <code>RELU</code>. A three-op epilogue pattern is a natural next step — we'd rather show the pass's real output than pretend."},
+ {k:"Second use blocks it",before:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = MatMul %0 %1 : 4x4\n%3 = Relu %2 : 4x4\n%4 = Print %2 : 4x4       ; second use",after:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = MatMul %0 %1 : 4x4\n%3 = Relu %2 : 4x4\n%4 = Print %2 : 4x4",af:{2:"hot"},
+  asm:"MATMUL     M3, M1, M2\nRELU       M4, M3\n; M3 still needed by print",asf:{},n:0,
+  why:"<b>Does not fuse.</b> The MatMul result is read twice. Folding it into <code>MATMULRELU</code> would destroy the plain product the print still needs, so the pass leaves the graph untouched. This is <code>mtxtensorir</code>'s negative test."}
+];
+var fxSeg=$("#fxSeg");
+fxSeg.innerHTML=FX.map(function(f,i){return '<button type="button" aria-pressed="false" data-i="'+i+'">'+f.k+"</button>"}).join("");
+function showFx(i){
+  var f=FX[i];
+  $$("button",fxSeg).forEach(function(b,j){b.setAttribute("aria-pressed",j===i?"true":"false")});
+  render($("#fxBefore"),f.before,"tir");
+  render($("#fxAfter"),f.after,"tir",f.af);
+  render($("#fxAsm"),f.asm,"asm",f.asf);
+  $("#fxCount").innerHTML=f.n+"<small>op"+(f.n===1?"":"s")+" fused</small>";
+  $("#fxWhy").innerHTML='<p style="margin:0;color:var(--ink-2)">'+f.why+"</p>";
+}
+$$("button",fxSeg).forEach(function(b){b.addEventListener("click",function(){showFx(+b.dataset.i)})});
+showFx(2);
+
+/* ---------- memory stepper ---------- */
+var PROGS={
+ naive:[
+  {t:"ADD    R1, R0, 0",cls:"C",lat:1,lv:[]},
+  {t:"LOAD   M1, [R1 + 0]      ; DRAM, use 1",cls:"T",lat:8,dram:64,lv:["dram","reg"]},
+  {t:"MATMUL M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"LOAD   M1, [R1 + 0]      ; DRAM again",cls:"T",lat:8,dram:64,lv:["dram","reg"]},
+  {t:"MATMUL M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"LOAD   M1, [R1 + 0]      ; DRAM again",cls:"T",lat:8,dram:64,lv:["dram","reg"]},
+  {t:"MATMUL M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"HALT",cls:"O",lv:[]}],
+ sp:[
+  {t:"ADD          R1, R0, 0",cls:"C",lat:1,lv:[]},
+  {t:"ADD          R11, R0, 0",cls:"C",lat:1,lv:[]},
+  {t:"LOAD         M1, [R1 + 0]   ; the one DRAM load",cls:"T",lat:8,dram:64,lv:["dram","reg"]},
+  {t:"SCRATCHSTORE M1, [R11 + 0]  ; stage",cls:"T",lat:1,sp:64,lv:["reg","sp"]},
+  {t:"SCRATCHLOAD  M1, [R11 + 0]  ; reuse 1",cls:"T",lat:1,sp:64,lv:["sp","reg"]},
+  {t:"MATMUL       M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"SCRATCHLOAD  M1, [R11 + 0]  ; reuse 2",cls:"T",lat:1,sp:64,lv:["sp","reg"]},
+  {t:"MATMUL       M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"SCRATCHLOAD  M1, [R11 + 0]  ; reuse 3",cls:"T",lat:1,sp:64,lv:["sp","reg"]},
+  {t:"MATMUL       M2, M1, M1",cls:"C",lat:4,lv:["reg","unit"]},
+  {t:"HALT",cls:"O",lv:[]}]
+};
+var prog="naive",pc=0,timer=null;
+function drawBars(el,items){el.innerHTML=items}
+function updateMem(){
+  var P=PROGS[prog],done=P.slice(0,pc),full=perf(P);
+  var flags={};P.forEach(function(_,i){flags[i]=i===pc-1?"hot":(i>=pc?"dim":"")});
+  render($("#progCode"),P.map(function(p){return p.t}).join("\n"),"asm",flags);
+  var executed=done.filter(function(p){return p.cls!=="O"});
+  $("#cIns").textContent=executed.length;
+  $("#cCyc").textContent=executed.reduce(function(a,p){return a+p.lat},0);
+  $("#cDram").textContent=executed.reduce(function(a,p){return a+(p.dram||0)},0);
+  $("#cSp").textContent=executed.reduce(function(a,p){return a+(p.sp||0)},0);
+  var last=pc>0?P[pc-1]:null;
+  $$(".lvl").forEach(function(l){l.classList.toggle("act",!!last&&last.lv.indexOf(l.dataset.l)>=0)});
+  var part=perf(done),scale=37;
+  $("#seqBars").innerHTML=part.runs.map(function(r){return '<span class="'+r.cls+'" style="flex:0 0 '+(r.cyc/scale*100)+'%">'+r.cyc+"</span>"}).join("");
+  var finished=pc>=P.length;
+  $("#ovBars").innerHTML=finished?full.groups.map(function(g){return '<span class="'+(g.pair?"P":g.a.cls)+'" style="flex:0 0 '+(g.cyc/scale*100)+'%" title="'+(g.pair?"max("+g.a.cyc+", "+g.b.cyc+")":"unpaired")+'">'+g.cyc+"</span>"}).join(""):"";
+  $("#seqVal").textContent=part.seq;
+  $("#ovVal").textContent=finished?full.ov:"…";
+  $("#stepBtn").disabled=finished;$("#runBtn").disabled=finished&&!timer;
+  $("#runBtn").textContent=timer?"Pause":"Run ▸";
+}
+function stepMem(){if(pc<PROGS[prog].length){pc++;updateMem()}if(pc>=PROGS[prog].length)stopRun()}
+function stopRun(){clearInterval(timer);timer=null;updateMem()}
+$("#stepBtn").addEventListener("click",function(){stopRun();stepMem()});
+$("#resetBtn").addEventListener("click",function(){stopRun();pc=0;updateMem()});
+$("#runBtn").addEventListener("click",function(){
+  if(timer){stopRun();return}
+  if(pc>=PROGS[prog].length)pc=0;
+  timer=setInterval(stepMem,reduce?120:520);updateMem();
+});
+$$("#progSeg button").forEach(function(b){b.addEventListener("click",function(){
+  stopRun();prog=b.dataset.p;$$("#progSeg button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")});
+  pc=PROGS[prog].length;updateMem();
+})});
+pc=PROGS.naive.length;updateMem();
+
+/* compare */
+(function(){
+  var a=perf(PROGS.naive),b=perf(PROGS.sp);
+  var rows=[["Sequential cycles",a.seq,b.seq],["Overlap-aware cycles",a.ov,b.ov],["DRAM bytes",192,64],["Scratchpad bytes",0,256]];
+  $("#cmp").innerHTML='<div class="key" style="margin-bottom:6px"><span><i style="background:var(--line-2)"></i>tiling_naive.s</span><span><i style="background:var(--green-2)"></i>tiling_scratchpad.s</span></div>'+rows.map(function(r){
+    var m=Math.max(r[1],r[2]);
+    return '<div class="cmp-row"><span class="lb">'+r[0]+'</span><div class="cmp-bars">'+
+      '<div class="cmp-bar"><div class="track"><div class="fill a" style="width:'+(r[1]/m*100)+'%"></div></div><span class="v">'+r[1]+"</span></div>"+
+      '<div class="cmp-bar"><div class="track"><div class="fill b" style="width:'+(r[2]/m*100)+'%"></div></div><span class="v">'+r[2]+"</span></div></div></div>";
+  }).join("");
+})();
+
+/* tiling calculator */
+var NS=[8,16,32,64,128,256];
+function bytes(n){if(n<1024)return n+" B";if(n<1048576)return +(n/1024).toFixed(n<10240?1:0)+" KiB";return +(n/1048576).toFixed(1)+" MiB"}
+function calc(){
+  var N=NS[+$("#nRange").value],t=N/4,tm=t*t*t,foot=3*N*N*4,noReuse=tm*128+t*t*64,once=foot;
+  $("#kT").innerHTML=tm.toLocaleString()+"<small>("+t+" × "+t+" × "+t+")</small>";
+  $("#kF").innerHTML=bytes(foot)+"<small>"+(foot<=65536?"fits in scratchpad":"exceeds 64 KiB scratchpad")+"</small>";
+  $("#kN").innerHTML=bytes(noReuse)+"<small>every tile op fetches 2 tiles</small>";
+  $("#kS").innerHTML=bytes(once)+"<small>"+(noReuse/once).toFixed(1)+"× less</small>";
+  $("#kNote").textContent="N = "+N+": "+(foot<=65536?"all three matrices fit in the scratchpad, so one level of staging is enough to reach the each-byte-once floor.":"the working set is larger than the scratchpad, so a tiling pass needs a second level — scratchpad-sized blocks of 4×4 tiles — to approach the floor.")+" Arithmetic from the ISA parameters, not a simulation.";
+}
+$("#nRange").addEventListener("input",calc);calc();
+
+/* ---------- ISA table ---------- */
+var ISA=[
+ ["0x00","NOP","Scalar","No operation",0,1],["0x01","ADD","Scalar","Rd = Rs1 + Rs2 / imm",1,1],["0x02","SUB","Scalar","Rd = Rs1 − Rs2",1,1],["0x03","MUL","Scalar","Rd = Rs1 × Rs2",1,1],
+ ["0x10","LOAD","Memory","Register ← memory (4 / 16 / 64 bytes by class)","8 · 1*",1],["0x11","STORE","Memory","Memory ← register","8 · 1*",1],
+ ["0x20","BR","Control","Unconditional branch",1,1],["0x21","BEQ","Control","Branch if equal",1,1],["0x22","BNE","Control","Branch if not equal",1,1],["0x23","JMP","Control","Jump to register",1,1],["0x24","CALL","Control","Call subroutine",1,1],["0x25","RET","Control","Return",1,1],
+ ["0x30","VADD","Vector","4-lane FP32 add",2,1],["0x31","VMUL","Vector","4-lane FP32 multiply",2,1],
+ ["0x40","MATMUL","Matrix","Md = Ma × Mb",4,1],["0x41","TRANSPOSE","Matrix","Md = Maᵀ",2,1],["0x42","RELU","Matrix","Md = max(Ma, 0)",2,1],
+ ["0x50","MATMULACC","Matrix","Md = Md + Ma × Mb — bias / residual fusion",4,2],["0x51","MATMULRELU","Matrix","Md = relu(Ma × Mb) — fused epilogue",4,2],
+ ["0x60","CVT.F32.BF16","Convert","FP32 → BF16: Rd = Rs & 0xFFFF0000",1,2],["0x61","CVT.BF16.F32","Convert","BF16 → FP32 (payload already in top 16 bits)",1,2],
+ ["0x70","VREDSUM","Reduce","Rd = V[0] + V[1] + V[2] + V[3]",2,2],["0x71","MROWMAX","Reduce","Vd[i] = max of row i — softmax stability",2,2],["0x72","MROWSUM","Reduce","Vd[i] = sum of row i — softmax denominator",2,2]
+];
+function drawIsa(f){
+  $("#isaBody").innerHTML=ISA.filter(function(r){return f==="all"||String(r[5])===f}).map(function(r){
+    return '<tr class="'+(r[5]===2?"p2":"")+'"><td>'+r[0]+'</td><td class="mn">'+esc(r[1])+(r[5]===2?'<span class="tag2">P2</span>':"")+"</td><td>"+r[2]+"</td><td>"+esc(r[3])+'</td><td class="num">'+r[4]+"</td></tr>";
+  }).join("")+(f!=="2"?'<tr><td></td><td colspan="4" class="small muted">* LOAD/STORE: 8 cycles to DRAM, 1 cycle to the scratchpad (address-space bit set — the SCRATCHLOAD/SCRATCHSTORE pseudo-ops).</td></tr>':"");
+}
+$$("#isaSeg button").forEach(function(b){b.addEventListener("click",function(){
+  $$("#isaSeg button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")});drawIsa(b.dataset.f);
+})});
+drawIsa("all");
+function cells(id,p,n){$(id).innerHTML=Array.from({length:n},function(_,i){return "<span>"+p+i+"</span>"}).join("")}
+cells("#rR","R",16);cells("#rV","V",8);cells("#rM","M",8);
+
+/* ---------- BF16 ---------- */
+var buf=new DataView(new ArrayBuffer(4));
+function hex(u){return "0x"+(u>>>0).toString(16).toUpperCase().padStart(8,"0")}
+function prec(){
+  var raw=$("#fIn").value.trim(),v=Number(raw);
+  if(raw===""||!isFinite(v)){$("#pHex").textContent="enter a finite number";$("#pBf").textContent=$("#pBack").textContent=$("#pErr").textContent="—";return}
+  buf.setFloat32(0,v);var u=buf.getUint32(0),f32=buf.getFloat32(0);
+  var bf=(u&0xFFFF0000)>>>0;buf.setUint32(0,bf);var back=buf.getFloat32(0);
+  var bits="";for(var i=31;i>=0;i--){var b=(u>>>i)&1,pos=31-i,cls=pos===0?"s":pos<9?"e":"m";if(pos>=16)cls+=" x";bits+='<span class="'+cls+'">'+b+"</span>"}
+  $("#bits").innerHTML=bits;
+  $("#pHex").textContent=hex(u);
+  $("#pBf").textContent="0x"+(bf>>>16).toString(16).toUpperCase().padStart(4,"0");
+  $("#pBack").textContent=String(+back.toPrecision(8));
+  $("#pErr").textContent=f32===0?"0":(Math.abs(back-f32)/Math.abs(f32)*100).toPrecision(3)+" %";
+}
+$("#fIn").addEventListener("input",prec);
+$$("#precision .seg button").forEach(function(b){b.addEventListener("click",function(){$("#fIn").value=b.dataset.v;prec()})});
+prec();
+
+/* =========================================================
+   SIMULATIONS
+   ========================================================= */
+function Player(onState){this.gen=0;this.paused=false;this.speed=1;this.running=false;this.onState=onState||function(){}}
+Player.prototype.sleep=function(ms){var s=this,g=s.gen;return new Promise(function(res,rej){var left=ms;(function tick(){if(s.gen!==g)return rej("cancel");if(!s.paused)left-=30*s.speed;if(left<=0)return res();setTimeout(tick,30)})()})};
+Player.prototype.start=function(fn){var s=this;s.gen++;var g=s.gen;s.paused=false;s.running=true;s.onState();fn().then(function(){if(s.gen===g){s.running=false;s.paused=false;s.onState()}},function(e){if(e!=="cancel")console.error(e)})};
+Player.prototype.stop=function(){this.gen++;this.running=false;this.paused=false;this.onState()};
+var NS="http://www.w3.org/2000/svg";
+function sv(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e}
+function marker(svg,id,cls){var d=sv("defs",{},svg),m=sv("marker",{id:id,viewBox:"0 0 8 8",refX:"7",refY:"4",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},d);sv("path",{d:"M0,0 L8,4 L0,8 z","class":cls},m)}
+
+/* ---------- Sim 1: compile ---------- */
+var TOKS=[["Y","","IDENTIFIER"],["="," ","ASSIGN"],["relu"," ","RELU"],["(","","LPAREN"],["matmul","","MATMUL"],["(","","LPAREN"],["A","","IDENTIFIER"],[",","","COMMA"],["B"," ","IDENTIFIER"],[")","","RPAREN"],["+"," ","PLUS"],["C"," ","IDENTIFIER"],[")","","RPAREN"],[";","","SEMICOLON"]];
+$("#aSrc").innerHTML=TOKS.map(function(t,i){return t[1]+'<span data-i="'+i+'">'+esc(t[0])+"</span>"}).join("");
+var srcSpans=$$("#aSrc span");
+function chip(t){return "<span><b>"+t[2]+"</b>"+(t[2]==="IDENTIFIER"?"("+esc(t[0])+")":"")+"</span>"}
+
+var AST=[
+ {l:"Assign(Y)",x:230,y:24,w:132,p:-1,sh:"Y: 4×4 ✓"},
+ {l:"CallExpr(relu)",x:230,y:86,w:132,p:0,sh:"4×4"},
+ {l:"BinaryExpr(+)",x:230,y:148,w:132,p:1,sh:"4×4 ✓"},
+ {l:"CallExpr(matmul)",x:140,y:210,w:132,p:2,sh:"4×4 ✓"},
+ {l:"Var A",x:80,y:272,w:80,p:3,sh:"4×4"},
+ {l:"Var B",x:200,y:272,w:80,p:3,sh:"4×4"},
+ {l:"Var C",x:330,y:210,w:80,p:2,sh:"4×4"}];
+var CHECK_CAP={4:"<b>Var A</b> looks up the symbol table: declared <code>matrix A[4][4]</code> → 4×4.",5:"<b>Var B</b> → 4×4.",3:"<b>matmul(A, B)</b>: left has 4 columns, right has 4 rows. Inner dimensions agree → result is 4×4.",6:"<b>Var C</b> → 4×4.",2:"<b>+</b>: 4×4 plus 4×4. Shapes are equal, so element-wise add is legal → 4×4.",1:"<b>relu</b> is element-wise and keeps its input's shape → 4×4.",0:"<b>Assign</b>: Y is declared 4×4 and the right-hand side is 4×4. The program is well-typed, so compilation continues."};
+var astSvg=$("#aAst"),astEdges=[],astNodes=[];
+var eG=sv("g",{},astSvg);
+AST.forEach(function(n,i){
+  if(n.p>=0){var p=AST[n.p];astEdges[i]=sv("line",{x1:p.x,y1:p.y+15,x2:n.x,y2:n.y-15,"class":"ed"},eG)}
+  var g=sv("g",{"class":"nd"},astSvg);
+  sv("rect",{x:n.x-n.w/2,y:n.y-15,width:n.w,height:30,rx:7},g);
+  var t=sv("text",{x:n.x,y:n.y+4,"text-anchor":"middle"},g);t.textContent=n.l;
+  var s=sv("text",{x:n.x+n.w/2+6,y:n.y+4,"class":"sh"},g);
+  astNodes[i]={g:g,sh:s};
+});
+
+var DF=[{l:"Load A",x:60,y:40,w:96},{l:"Load B",x:60,y:115,w:96},{l:"Load C",x:60,y:190,w:96},{l:"MatMul",x:190,y:78,w:96},{l:"Add",x:350,y:130,w:124},{l:"Relu",x:470,y:130,w:80}];
+var DFE=[[0,3],[1,3],[3,4],[2,4],[4,5]],DFF=[[0,4],[1,4]];
+var dfSvg=$("#aDf");marker(dfSvg,"ahA","ahp");marker(dfSvg,"ahB","ahp g");
+var dG=sv("g",{},dfSvg),dfEdges=[],dfFused=[],dfNodes=[];
+function dpath(a,b){var x1=a.x+a.w/2,y1=a.y,x2=b.x-b.w/2-2,y2=b.y,mx=(x1+x2)/2;return "M"+x1+","+y1+" C"+mx+","+y1+" "+mx+","+y2+" "+x2+","+y2}
+DFE.forEach(function(e){dfEdges.push(sv("path",{d:dpath(DF[e[0]],DF[e[1]]),"class":"ed","marker-end":"url(#ahA)"},dG))});
+["M108,40 C272,40 250,124 286,124","M108,115 C200,115 240,136 286,136"].forEach(function(d){dfFused.push(sv("path",{d:d,"class":"ed fz","marker-end":"url(#ahB)"},dG))});
+DF.forEach(function(n,i){
+  var g=sv("g",{"class":"nd"},dfSvg);
+  sv("rect",{x:n.x-n.w/2,y:n.y-15,width:n.w,height:30,rx:7},g);
+  var t=sv("text",{x:n.x,y:n.y+4,"text-anchor":"middle"},g);t.textContent=n.l;
+  var id=sv("text",{x:n.x-n.w/2+2,y:n.y-20,"class":"idl"},g);id.textContent="%"+i;
+  dfNodes[i]={g:g,t:t};
+});
+render($("#aAsm"),ASM,"asm");
+var aLines=$$("#aAsm .ln"),ASM_NODE={4:0,5:1,6:2,7:4,8:5,9:5};
+var aPh=$$("#aPh span");
+function aPhase(k){aPh.forEach(function(s,i){s.className=i<k?"done":i===k?"on":""})}
+function aCap(h){$("#aCap").innerHTML=h}
+function cls(el,c,on){if(on)el.classList.add(c);else el.classList.remove(c)}
+function dfState(fused){
+  cls(dfNodes[3].g,"dead",fused);
+  [0,1,2].forEach(function(i){cls(dfEdges[i],"gone",fused)});
+  dfFused.forEach(function(e){cls(e,"hide",!fused)});
+  dfNodes[4].t.textContent=fused?"FusedMatMulAcc":"Add";
+}
+function aFinal(){
+  srcSpans.forEach(function(s){s.className="seen"});
+  $("#aTape").innerHTML=TOKS.map(chip).join("");
+  AST.forEach(function(n,i){astNodes[i].g.classList.remove("hide");astNodes[i].g.classList.add("on");astNodes[i].sh.textContent=n.sh;if(astEdges[i])astEdges[i].classList.remove("hide")});
+  dfNodes.forEach(function(n){n.g.classList.remove("hide","hot")});dfEdges.forEach(function(e){e.classList.remove("hide")});dfState(true);
+  aLines.forEach(function(l,i){l.className="ln"+(i===7?" hot":"")});
+  aPh.forEach(function(s){s.className="done"});
+  aCap("<b>One line, six phases:</b> 14 tokens → 7 AST nodes → 6 Tensor IR ops → 1 fusion → 10 MDT instructions + HALT. Press Play to watch it compile.");
+}
+function aReset(){
+  srcSpans.forEach(function(s){s.className=""});$("#aTape").innerHTML="";
+  astNodes.forEach(function(n){n.g.classList.add("hide");n.g.classList.remove("on");n.sh.textContent=""});
+  astEdges.forEach(function(e){if(e)e.classList.add("hide")});
+  dfNodes.forEach(function(n){n.g.classList.add("hide");n.g.classList.remove("hot","dead")});
+  dfEdges.forEach(function(e){e.classList.add("hide");e.classList.remove("gone")});
+  dfState(false);dfFused.forEach(function(e){e.classList.add("hide")});
+  aLines.forEach(function(l){l.className="ln dim"});
+}
+var pA=new Player(function(){$("#aPlay").textContent=pA.running?(pA.paused?"Resume ▸":"Pause"):"Play ▸"});
+async function playA(){
+  aReset();
+  aPhase(0);aCap("<b>Lexing.</b> The scanner walks the line character by character and groups the characters into tokens. <code>relu</code> and <code>matmul</code> come out as keywords, not identifiers.");
+  for(var i=0;i<TOKS.length;i++){
+    srcSpans.forEach(function(s,j){s.className=j<i?"seen":j===i?"cur":""});
+    $("#aTape").insertAdjacentHTML("beforeend",chip(TOKS[i]));
+    await pA.sleep(240);
+  }
+  srcSpans.forEach(function(s){s.className="seen"});
+  aPhase(1);aCap("<b>Parsing.</b> Recursive descent enters each rule top-down. <code>=</code> binds loosest, so Assign is the root. <code>+</code> sits above the matmul call because relu wraps the whole sum.");
+  for(i=0;i<AST.length;i++){if(astEdges[i])astEdges[i].classList.remove("hide");astNodes[i].g.classList.remove("hide");await pA.sleep(430)}
+  aPhase(2);
+  var order=[4,5,3,6,2,1,0];
+  for(i=0;i<order.length;i++){var k=order[i];astNodes[k].g.classList.add("on");astNodes[k].sh.textContent=AST[k].sh;aCap("<b>Checking shapes, bottom-up.</b> "+CHECK_CAP[k]);await pA.sleep(900)}
+  aPhase(3);aCap("<b>Lowering to Tensor IR.</b> Every operation becomes one SSA value with a result shape. Loads for the inputs come first, then MatMul, Add and Relu, each reading earlier values by id.");
+  for(i=0;i<DF.length;i++){
+    dfNodes[i].g.classList.remove("hide");
+    DFE.forEach(function(e,j){if(e[1]===i)dfEdges[j].classList.remove("hide")});
+    await pA.sleep(420);
+  }
+  aPhase(4);
+  dfNodes[3].g.classList.add("hot");dfNodes[4].g.classList.add("hot");
+  aCap("<b>Fusion pass.</b> It counts uses: <code>%3 MatMul</code> is read by exactly one op, the Add. That makes MatMul → Add a legal fusion.");
+  await pA.sleep(1800);
+  dfNodes[3].g.classList.remove("hot");dfState(true);
+  aCap("<b>Rewritten.</b> The Add becomes <code>FusedMatMulAcc %0 %1 %2</code> and reads A, B and C directly. <code>%3</code> is now dead. Relu reads a fused op, not a MatMul, so it stays separate.");
+  await pA.sleep(2200);
+  dfNodes[4].g.classList.remove("hot");
+  aPhase(5);aCap("<b>Emitting MDT.</b> Addresses go into scalar registers, each Load becomes a 64-byte tile LOAD, and the fused op becomes a single <code>MATMULACC</code>.");
+  for(i=0;i<aLines.length;i++){
+    aLines.forEach(function(l,j){l.className="ln"+(j<i?"":j===i?" hot":" dim")});
+    dfNodes.forEach(function(n,j){cls(n.g,"hot",ASM_NODE[i]===j)});
+    await pA.sleep(i===7?900:330);
+  }
+  dfNodes.forEach(function(n){n.g.classList.remove("hot")});
+  aFinal();
+}
+$("#aPlay").addEventListener("click",function(){
+  if(!pA.running){pA.start(playA);return}
+  pA.paused=!pA.paused;pA.onState();
+});
+aFinal();
+
+/* ---------- Sim 2: MDT machine ---------- */
+var MA=[[1,2,0,-1],[0,1,3,2],[2,-1,1,0],[1,0,-2,1]],MB=[[1,0,2,-1],[0,1,-1,2],[1,2,0,1],[-1,1,1,0]],MC=[[-2,0,1,0],[1,-3,0,2],[0,1,-2,1],[-1,0,0,-4]];
+function flat(m){return m.reduce(function(a,r){return a.concat(r)},[])}
+function fmt(v){return v<0?"−"+(-v):String(v===0?0:v)}
+function fmtF(v){return v<0?"("+fmt(v)+")":fmt(v)}
+function setGrid(el,vals){
+  if(el.children.length!==16)el.innerHTML=new Array(17).join("<span></span>");
+  for(var i=0;i<16;i++){var s=el.children[i];s.className=vals?(vals[i]<0?"neg":""):"e";s.textContent=vals?fmt(vals[i]):"·"}
+}
+var bs;
+function bInit(){bs={R:[0,0,0,0,0],set:[true,false,false,false,false],M:{0:null,1:null,2:null},Y:null,n:0,dram:0,cur:-1}}
+var ASM_LINES=ASM.split("\n");
+function drawB(){
+  setGrid($("#dA"),flat(MA));setGrid($("#dB"),flat(MB));setGrid($("#dC"),flat(MC));setGrid($("#dY"),bs.Y);
+  setGrid($("#rM0"),bs.M[0]);setGrid($("#rM1"),bs.M[1]);setGrid($("#rM2"),bs.M[2]);
+  $("#bSR").innerHTML=[0,1,2,3,4].map(function(i){return '<span id="sr'+i+'">R'+i+" = "+(bs.set[i]?bs.R[i]:"—")+"</span>"}).join("");
+  var fl={};ASM_LINES.forEach(function(_,i){fl[i]=i===bs.cur?"hot":(i>bs.cur?"dim":"")});
+  render($("#bProg"),ASM,"asm",fl);
+  var pp=perf(HERO_PROG.slice(0,bs.n));
+  $("#bN").textContent=bs.n;$("#bD").textContent=bs.dram;$("#bS").textContent=pp.seq;$("#bO").textContent=pp.ov;
+  $("#bBars").innerHTML=pp.runs.map(function(r){return '<span class="'+r.cls+'" style="flex:0 0 '+(r.cyc/42*100)+'%">'+r.cyc+"</span>"}).join("");
+  $("#bSV").textContent=pp.seq;
+}
+function bCap(h){$("#bCap").innerHTML=h}
+function bMu(h){$("#bMu").innerHTML=h||'<span class="n">idle</span>'}
+var pB=new Player(function(){$("#bPlay").textContent=pB.running?(pB.paused?"Resume ▸":"Pause"):"Play ▸"}),bStepFlag=false;
+function fly(fromId,toId,ms){
+  var mach=$("#mach"),c=mach.getBoundingClientRect(),from=$("#"+fromId),a=from.getBoundingClientRect(),b=$("#"+toId).getBoundingClientRect();
+  var cl=from.cloneNode(true);cl.removeAttribute("id");$$("[id]",cl).forEach(function(x){x.removeAttribute("id")});
+  cl.classList.add("flyer");cl.style.left=(a.left-c.left)+"px";cl.style.top=(a.top-c.top)+"px";cl.style.width=a.width+"px";
+  mach.appendChild(cl);
+  var d=reduce?0:ms/pB.speed;cl.style.transition="transform "+d+"ms cubic-bezier(.55,0,.3,1)";cl.getBoundingClientRect();
+  cl.style.transform="translate("+(b.left-a.left)+"px,"+(b.top-a.top)+"px) scale("+(b.width/a.width)+")";
+  return pB.sleep(ms).then(function(){cl.remove()},function(e){cl.remove();throw e});
+}
+function gridSpans(id){return $("#"+id).children}
+var ADDR=[0,64,128,192],ADDR_NAME=["A","B","C","Y"];
+async function execB(i){
+  var line=ASM_LINES[i];
+  if(i<=3){
+    var k=i+1;bs.R[k]=ADDR[i];bs.set[k]=true;drawB();$("#sr"+k).classList.add("act");
+    bMu();bCap("<b>"+esc(line.split(";")[0].trim().replace(/\s+/g," "))+"</b>: scalar setup. R"+k+" now holds "+ADDR_NAME[i]+"'s DRAM address ("+ADDR[i]+"). 1 cycle.");
+    await pB.sleep(650);$("#sr"+k).classList.remove("act");
+  }else if(i<=6){
+    var j=i-4,src=["bkA","bkB","bkC"][j],dst=["bkM1","bkM2","bkM0"][j],reg=[1,2,0][j],m=[MA,MB,MC][j];
+    $("#"+src).classList.add("act");
+    bCap("<b>LOAD M"+reg+" ← DRAM["+ADDR[j]+"]</b>: the whole 4×4 tile of "+ADDR_NAME[j]+" (64 bytes) moves into matrix register M"+reg+". 8 cycles, the most expensive kind of instruction here."+(reg===0?" C goes into M0 because it is the accumulator's starting value.":""));
+    await fly(src,dst,1000);
+    bs.M[reg]=flat(m);bs.dram+=64;drawB();$("#"+src).classList.remove("act");$("#"+dst).classList.add("act");
+    await pB.sleep(350);$("#"+dst).classList.remove("act");
+  }else if(i===7){
+    bCap("<b>MATMULACC M0, M1, M2</b> computes M0 = M0 + M1 × M2. M0 started as C, so each cell becomes C[i][j] plus a 4-term dot product. That is 16 cells and 64 multiply-adds in one instruction, which costs 4 cycles in the model.");
+    for(var r=0;r<4;r++)for(var c=0;c<4;c++){
+      drawB();
+      var a=gridSpans("rM1"),b=gridSpans("rM2"),o=gridSpans("rM0"),terms=[],s=0;
+      for(var q=0;q<4;q++){a[r*4+q].classList.add("row");b[q*4+c].classList.add("colh");terms.push('<span class="r">'+fmtF(MA[r][q])+"</span>·"+'<span class="r">'+fmtF(MB[q][c])+"</span>");s+=MA[r][q]*MB[q][c]}
+      var old=bs.M[0][r*4+c],nv=old+s;o[r*4+c].classList.add("tgt");
+      bMu('<span class="k">M0['+r+"]["+c+"]</span> = "+fmt(old)+" + ("+terms.join(" + ")+")\n        = "+fmt(old)+" + "+fmtF(s)+' = <span class="n">'+fmt(nv)+"</span>");
+      await pB.sleep(560);
+      bs.M[0][r*4+c]=nv;
+    }
+    drawB();bMu("16 cells done · intermediate A × B never left the register file");
+  }else if(i===8){
+    var neg=bs.M[0].filter(function(v){return v<0}).length;
+    bCap("<b>RELU M0, M0</b>: every negative entry is clamped to 0. This tile has "+neg+" negative cells. 2 cycles.");
+    for(var x=0;x<16;x++){
+      var v=bs.M[0][x];drawB();var sp=gridSpans("rM0")[x];
+      if(v<0){sp.classList.add("zap");bMu('<span class="k">M0['+(x>>2)+"]["+(x&3)+"]</span> = max("+fmt(v)+', 0) = <span class="n">0</span>');await pB.sleep(620);bs.M[0][x]=0}
+      else{sp.classList.add("tgt");await pB.sleep(110)}
+    }
+    drawB();bMu("relu applied in place");
+  }else if(i===9){
+    $("#bkM0").classList.add("act");
+    bCap("<b>STORE M0 → DRAM[192]</b>: the finished tile Y = relu(A × B + C) is written back to memory. 64 bytes, 8 cycles.");
+    await fly("bkM0","bkY",1000);
+    bs.Y=bs.M[0].slice();bs.dram+=64;drawB();$("#bkM0").classList.remove("act");$("#bkY").classList.add("act");
+    await pB.sleep(350);$("#bkY").classList.remove("act");
+  }else{
+    bMu('<span class="k">HALT</span>');
+    bCap("<b>HALT.</b> Y = relu(A × B + C) is now in DRAM. The model gives 42 sequential cycles, or 32 when transfers overlap with compute, and 256 bytes of DRAM traffic (3 tiles in, 1 out).");
+  }
+}
+function bFinal(){
+  bInit();bs.R=[0,0,64,128,192];bs.set=[true,true,true,true,true];bs.M[1]=flat(MA);bs.M[2]=flat(MB);
+  var acc=flat(MC);for(var r=0;r<4;r++)for(var c=0;c<4;c++){var s=0;for(var q=0;q<4;q++)s+=MA[r][q]*MB[q][c];acc[r*4+c]=Math.max(0,acc[r*4+c]+s)}
+  bs.M[0]=acc;bs.Y=acc.slice();bs.n=10;bs.dram=256;bs.cur=10;drawB();bMu("16 cells · 64 multiply-adds · 1 instruction");
+  bCap("<b>Final state</b> after running <code>layer.s</code>. The matrices hold real values computed with MDT's semantics. Press Play to run it again, or Step to go one instruction at a time.");
+}
+async function playB(){
+  bInit();drawB();bMu();bCap("Machine reset. A, B and C are in DRAM; every register is empty.");
+  await pB.sleep(700);
+  for(var i=0;i<ASM_LINES.length;i++){
+    await pB.sleep(1);
+    bs.cur=i;drawB();
+    await execB(i);
+    if(i<10)bs.n=i+1;drawB();
+    if(bStepFlag){bStepFlag=false;pB.paused=true;pB.onState()}
+  }
+}
+$("#bPlay").addEventListener("click",function(){if(!pB.running){bStepFlag=false;pB.start(playB);return}pB.paused=!pB.paused;pB.onState()});
+$("#bStep").addEventListener("click",function(){bStepFlag=true;if(!pB.running)pB.start(playB);else{pB.paused=false;pB.onState()}});
+$("#bReset").addEventListener("click",function(){pB.stop();$$(".flyer").forEach(function(f){f.remove()});bInit();drawB();bMu();bCap("Machine reset. A, B and C are in DRAM; every register is empty. Press Play or Step.");$$("#mach .blk").forEach(function(b){b.classList.remove("act")})});
+$$("#bSpeed button").forEach(function(b){b.addEventListener("click",function(){pB.speed=+b.dataset.s;$$("#bSpeed button").forEach(function(x){x.setAttribute("aria-pressed",x===b?"true":"false")})})});
+bFinal();
+
+/* ---------- Sim 3: memory race ---------- */
+function pathOf(t){var m=t.split(/\s+/)[0];return m==="LOAD"?["dram","reg"]:m==="SCRATCHSTORE"?["reg","sp"]:m==="SCRATCHLOAD"?["sp","reg"]:m==="MATMUL"?["reg","unit","reg"]:null}
+var LANES=[{el:$("#rN"),P:PROGS.naive},{el:$("#rS"),P:PROGS.sp}].map(function(L){
+  var t=0,items=L.P.filter(function(p){return p.cls!=="O"}).map(function(p){var it={text:p.t.split(";")[0].trim().replace(/\s+/g," "),lat:p.lat,start:t,end:t+p.lat,path:pathOf(p.t),dram:p.dram||0,sp:p.sp||0};t+=p.lat;return it});
+  return {el:L.el,items:items,total:t,tok:$(".tok",L.el),boxes:$$(".rb",L.el),full:perf(L.P)};
+});
+var RACE_END=Math.max.apply(null,LANES.map(function(l){return l.total}));
+function boxX(L,name){var b=L.boxes.filter(function(x){return x.dataset.b===name})[0];return b.offsetLeft+b.offsetWidth/2-11}
+function drawRace(t){
+  LANES.forEach(function(L){
+    var pos=null,act=[],cur=null,dram=0,spb=0;
+    L.items.forEach(function(it){
+      if(t<it.start)return;cur=it;
+      if(t>=it.end){dram+=it.dram;spb+=it.sp;if(it.path)pos={at:it.path[it.path.length-1]}}
+      else if(it.path){pos={path:it.path,p:(t-it.start)/it.lat};act=it.path}
+    });
+    var x=0;
+    if(pos&&pos.at)x=boxX(L,pos.at);
+    else if(pos){var n=pos.path.length-1,f=Math.min(pos.p*n,n-1e-6),sg=Math.floor(f),lf=f-sg;x=boxX(L,pos.path[sg])+(boxX(L,pos.path[sg+1])-boxX(L,pos.path[sg]))*lf}
+    L.tok.style.opacity=pos?1:0;L.tok.style.transform="translateX("+x+"px)";
+    L.tok.classList.toggle("c",!!(cur&&t<cur.end&&/^MATMUL/.test(cur.text)));
+    L.boxes.forEach(function(b){b.classList.toggle("act",act.indexOf(b.dataset.b)>=0)});
+    var done=t>=L.total;
+    $(".cv",L.el).textContent=Math.floor(Math.min(t,L.total));
+    $(".rprog i",L.el).style.width=(Math.min(t,L.total)/RACE_END*100)+"%";
+    $(".rins",L.el).textContent=done?"HALT":cur?cur.text+"  ·  "+cur.lat+" cyc":"—";
+    $(".rstat",L.el).innerHTML=done?"<b>✓ finished</b> · "+L.total+" cycles · "+dram+" B DRAM"+(spb?" · "+spb+" B scratchpad":""):dram+" B DRAM"+(spb?" · "+spb+" B scratchpad":"");
+    L.el.classList.toggle("done",done);
+  });
+}
+var rt={t:RACE_END,raf:0,last:0,paused:false,running:false};
+function raceBtn(){$("#cRace").textContent=rt.running?(rt.paused?"Resume ▸":"Pause"):"Race ▸"}
+function raceFrame(ts){
+  var dt=rt.last?ts-rt.last:0;rt.last=ts;
+  if(!rt.paused)rt.t+=dt/(reduce?40:190);
+  drawRace(Math.min(rt.t,RACE_END));
+  if(rt.t<RACE_END){rt.raf=requestAnimationFrame(raceFrame)}else{rt.running=false;raceBtn()}
+}
+$("#cRace").addEventListener("click",function(){
+  if(!rt.running){rt.t=0;rt.last=0;rt.paused=false;rt.running=true;cancelAnimationFrame(rt.raf);rt.raf=requestAnimationFrame(raceFrame)}
+  else{rt.paused=!rt.paused;rt.last=0}
+  raceBtn();
+});
+drawRace(RACE_END);
+window.addEventListener("resize",function(){if(!rt.running)drawRace(Math.min(rt.t,RACE_END))});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){if(!rt.running)drawRace(Math.min(rt.t,RACE_END))});
+
+/* ---------- Sim 4: team relay ---------- */
+RULES.out=[[";.*","c"],["✕","n"],["✓","k"],["→","f"],["%\\d+","r"],["\\b\\d+[x×]\\d+(?:[x×]\\d+)?\\b","r"],["\\b[A-Z][A-Z0-9]{2,}(?:\\.[A-Z0-9]+)*\\b","k"],["\\b[A-Z][a-z]+[A-Z]\\w*(?=\\()","f"]];
+var PPL=[
+ {short:"Vinay A",full:"Vinay A",init:"VA",reg:"24BCB0131",branch:"Vinay-A",role:"Lexer · Parser · AST",recv:"layer.mtx",give:"AST",
+  input:"tensor X[8][4][4];\ntensor W[4][4];\ntensor Y[8][4][4];\nY = softmax(matmul(X, W));",inLang:"mtx",
+  p1t:"lexer only",p1:"; Review 1: mtxlex tokenises the file\nIDENTIFIER(tensor) IDENTIFIER(X) LBRACKET ...\n✕ 'tensor' is just a name, not a keyword\n✕ 'softmax' is not a builtin\n; no parser yet, so no AST to hand on",
+  p2t:"full parser",p2:"TENSOR IDENTIFIER(X) LBRACKET INT(8) RBRACKET ...\nMatrixDecl(X, 8x4x4)\nMatrixDecl(W, 4x4)\nMatrixDecl(Y, 8x4x4)\nAssign(Y)\n  CallExpr(softmax, [CallExpr(matmul,\n    [Var X, Var W])])",p2Lang:"out",
+  was:["Hand-written lexer for 2-D matrix programs","mtxlex token dumper","Grammar specified in docs/grammar.md"],
+  deltas:["TENSOR keyword with a leading batch dimension: [8][4][4]","SOFTMAX as the fourth builtin","Recursive-descent parser that builds the AST","Panic-mode recovery: one missing ';' gives one error, not a cascade","mtxparse AST dumper"],
+  ev:["28/28 CTest","3 new parser tests"],
+  c1:"At Review 1 only the lexer ran, and a Phase 2 program falls over immediately: <code>tensor</code> is just a name and <code>softmax</code> is unknown.",
+  c2:"The Phase 2 parser understands the batch dimension and softmax, and builds a real syntax tree for the next person."},
+ {short:"Parth",full:"Mudpe Parth Tulsidas",init:"MP",reg:"24BDS0353",branch:"parth",role:"Semantic analysis · Symbol table",recv:"AST",give:"typed AST",
+  input:"Assign(Y)\n  CallExpr(softmax, [CallExpr(matmul, [Var X, Var W])])\n; declared  X : 8x4x4   W : 4x4   Y : 8x4x4",inLang:"out",
+  p1t:"2-D types",p1:"; Review 1: MatrixType knows rows × cols\n; checked on hand-built ASTs (mtxcheck)\n✕ X : 8×4×4 has no type, no batch dim\n✕ softmax: no rule to check it against",
+  p2t:"batch-aware",p2:"Var X          → 8×4×4\nVar W          → 4×4 (batch 1)\nmatmul(X, W)   inner 4 = 4, batch 8 vs 1\n               → broadcast            ✓ 8×4×4\nsoftmax(…)     row-wise, shape kept   ✓ 8×4×4\nY = …          declared 8×4×4         ✓\n; still rejects: batch 8 vs 4         ✕",p2Lang:"out",
+  was:["MatrixType for 2-D shapes: inner-dimension and equal-shape rules","Scoped symbol table","mtxcheck, run on hand-built ASTs"],
+  deltas:["Batch dimension inside MatrixType","Broadcast rule: batches are equal, or one side is 1","checkSoftmax","SemanticAnalyzer runs over the real parser's AST"],
+  ev:["Implemented","mtxcheck"],
+  c1:"The Phase 1 type system only knew 2-D shapes, so a batched tensor couldn't even be given a type.",
+  c2:"Every node now gets a shape including its batch dimension. Broadcasting is allowed only when it's safe, and a bad batch is still a compile error."},
+ {short:"Jeevitesh",full:"Kandi Jeevitesh Reddy",init:"KJ",reg:"24BCE0350",branch:"Jeevitesh",role:"Tensor IR · Optimisation · LLVM IR",recv:"typed AST",give:"fused Tensor IR",
+  input:"Y = relu(matmul(A, B) + C)\n; every operand checked as 4x4",inLang:"out",
+  p1t:"no middle-end",p1:"; Review 1 design: AST → LLVM IR directly\ncall @mdt.matmul.4x4(%T, %A, %B)\n; + C: generic element-wise loop\ncall @mdt.relu.4x4(%Y, %T)\n; matmul-then-add is never seen\n; as one pattern → nothing to fuse",
+  p2t:"Tensor IR + fusion",p2:"%0 = Load : 4x4\n%1 = Load : 4x4\n%2 = Load : 4x4\n%3 = MatMul %0 %1 : 4x4   ; 1 use\n%4 = FusedMatMulAcc %0 %1 %2 : 4x4\n%5 = Relu %4 : 4x4\n; runFusionPass → 1 fused",p2Lang:"tir",
+  was:["LLVM IR interfaces (compiler/llvm/*.h)","Intrinsic names for matrix ops","No layer where shapes and patterns stay visible"],
+  deltas:["Tensor IR: 19 op kinds in SSA form, each with its shape","Tier 2 ops: fused, tiled, scratchpad and precision-convert","Fusion pass guarded by use count, not just adjacency","mtxtensorir demo with positive and negative fusion tests"],
+  ev:["Implemented","mtxtensorir"],
+  c1:"Phase 1 went straight from the AST to LLVM IR. There was no layer where 'matmul then add' could be recognised as one thing.",
+  c2:"Tensor IR keeps the operations whole. The fusion pass checks that <code>%3</code> has exactly one use, then merges MatMul + Add into one op."},
+ {short:"Shreyas",full:"Shreyas Mandem",init:"SM",reg:"24BCE0381",branch:"Shreyas",role:"MDT ISA · Backend · Simulator",recv:"fused Tensor IR",give:"layer.s + cycles",
+  input:"%4 = FusedMatMulAcc %0 %1 %2 : 4x4\n; plus: one tile reused by 3 matmuls",inLang:"tir",
+  p1t:"17 instructions",p1:"; Review 1: DRAM ↔ registers only\nMATMUL M3, M1, M2\n; + C: no matrix-add instruction\nLOAD M1, [R1 + 0]   ; ×3, one per use\n→ 192 B DRAM · 37 cycles*\n; *Phase 2 model on Phase 1 code",
+  p2t:"24 instructions",p2:"MATMULACC M0, M1, M2  ; C + A×B, one op\nLOAD M1 once          ; 8 cycles\nSCRATCHSTORE M1       ; stage it\nSCRATCHLOAD M1 ×3     ; 1 cycle each\n→ 64 B DRAM · 26 cycles\n  (22 overlap-aware, mdtsim --perf)",p2Lang:"out",
+  was:["MDT ISA: 17 instructions, R / V / M register classes","Assembler and functional simulator (mdtsim)","LLVM target description (.td files)"],
+  deltas:["7 new instructions: MATMULACC, MATMULRELU, 2× CVT, VREDSUM, MROWMAX, MROWSUM","64 KiB scratchpad address space","BF16 storage by truncation","--perf analytical model: sequential and overlap-aware cycles","Tiling ablation: DRAM traffic 192 B → 64 B"],
+  ev:["17/17 backend tests","mdtsim --perf"],
+  c1:"The Phase 1 ISA had no matrix add and no scratchpad, so every reuse of a tile was another 64-byte DRAM trip.",
+  c2:"Fused instructions and a scratchpad: one DRAM load, three 1-cycle reuses, and a performance model that measures the difference."}
+];
+var BOARD=[
+ ["Language keywords","5","7 (+ TENSOR, SOFTMAX)",[0]],
+ ["Front end","lexer only","lexer + parser + AST",[0]],
+ ["Tensor rank","2-D matrices","batched 3-D tensors",[0,1]],
+ ["Type rules","inner dims, equal shapes","+ batch broadcast, softmax",[1]],
+ ["Middle-end IR","none","Tensor IR, 19 op kinds",[2]],
+ ["Fusion patterns","0","2 (MatMul→Relu, MatMul→Add)",[2]],
+ ["MDT instructions","17","24",[3]],
+ ["Memory levels","DRAM, registers","+ 64 KiB scratchpad",[3]],
+ ["Performance model","none","sequential + overlap-aware",[3]],
+ ["DRAM bytes, 3× tile reuse","192 B","64 B",[3]]
+];
+$("#dBoard").insertAdjacentHTML("beforeend",BOARD.map(function(r){
+  return '<div class="brow"><span class="lb">'+esc(r[0])+'</span><span class="v1">'+esc(r[1])+'</span><span class="ar">→</span><span class="v2">'+esc(r[2])+'</span><span class="own">'+r[3].map(function(i){return PPL[i].short}).join(" · ")+"</span></div>";
+}).join(""));
+var bRows=$$("#dBoard .brow"),dTrack=$("#dTrack"),baton=$("#baton");
+dTrack.insertAdjacentHTML("beforeend",PPL.map(function(p,i){
+  return '<button class="station" type="button" data-i="'+i+'"><span class="av">'+p.init+'</span><span class="sx"><span class="sn">'+esc(p.short)+'</span><span class="sr">'+esc(p.role)+"</span></span></button>";
+}).join(""));
+var stations=$$(".station",dTrack),dS={cur:0,end:false};
+function moveBaton(k,label){
+  baton.textContent=label;
+  var st=stations[k],x=st.offsetLeft+st.offsetWidth/2-baton.offsetWidth/2;
+  x=Math.max(0,Math.min(x,dTrack.clientWidth-baton.offsetWidth));
+  baton.style.transform="translateX("+x+"px)";
+}
+function markStations(k,allDone){stations.forEach(function(s,i){s.classList.toggle("on",!allDone&&i===k);s.classList.toggle("done",allDone||i<k)})}
+function hlBoard(k){bRows.forEach(function(r,i){r.classList.toggle("hl",k!==null&&BOARD[i][3].indexOf(k)>=0)})}
+function dCap(h){$("#dCap").innerHTML=h}
+function deltaHTML(t){return '<div class="delta"><span class="plus">NEW</span><span>'+esc(t)+"</span></div>"}
+function renderPerson(k,full){
+  var p=PPL[k];
+  $("#dAv").textContent=p.init;$("#dName").textContent=p.full;
+  $("#dMeta").innerHTML="<span><b>"+p.reg+"</b></span><span>branch <code>"+p.branch+"</code></span><span>"+esc(p.role)+"</span>";
+  $("#dRecv").textContent=p.recv+(k>0?" from "+PPL[k-1].short:"");
+  render($("#dIn"),p.input,p.inLang);
+  $("#dP1t").textContent=p.p1t;$("#dP2t").textContent=p.p2t;
+  render($("#dP1c"),p.p1,"out");render($("#dP2c"),p.p2,p.p2Lang);
+  $("#dWas").innerHTML=p.was.map(function(w){return "<li>"+esc(w)+"</li>"}).join("");
+  $("#dP1").classList.toggle("hid",!full);$("#dP2").classList.toggle("hid",!full);
+  $("#dDel").innerHTML=full?p.deltas.map(deltaHTML).join(""):"";
+  $("#dEv").innerHTML=full?p.ev.map(function(e){return '<span class="st impl">'+esc(e)+"</span>"}).join(""):"";
+}
+function jumpD(k){
+  pD.stop();dS.cur=k;dS.end=false;
+  renderPerson(k,true);markStations(k,false);moveBaton(k,PPL[k].recv);hlBoard(k);
+  dCap("<b>"+PPL[k].short+".</b> "+PPL[k].c2+' <span class="muted">Press Play relay to run it step by step.</span>');
+}
+var pD=new Player(function(){$("#dPlay").textContent=pD.running?(pD.paused?"Resume ▸":"Pause"):"Play relay ▸"}),dStepFlag=false;
+async function beat(ms){await pD.sleep(ms);if(dStepFlag){dStepFlag=false;pD.paused=true;pD.onState()}await pD.sleep(1)}
+async function playD(){
+  var start=dS.end?0:dS.cur;dS.end=false;
+  for(var k=start;k<PPL.length;k++){
+    var p=PPL[k];dS.cur=k;
+    renderPerson(k,false);markStations(k,false);hlBoard(null);moveBaton(k,p.recv);
+    dCap("<b>"+p.full+"</b> receives <code>"+esc(p.recv)+"</code>"+(k>0?" from "+PPL[k-1].short:"")+". Role: "+esc(p.role)+".");
+    await beat(1700);
+    $("#dP1").classList.remove("hid");
+    dCap("<b>Phase 1:</b> "+p.c1);
+    await beat(3000);
+    var lines=$$("#dP2c .ln");lines.forEach(function(l){l.classList.add("off")});
+    $("#dP2").classList.remove("hid");
+    dCap("<b>Phase 2:</b> "+p.c2);
+    for(var i=0;i<lines.length;i++){lines[i].classList.remove("off");await pD.sleep(300)}
+    await beat(1800);
+    hlBoard(k);
+    dCap("<b>New in Phase 2</b> from "+p.short+": "+p.deltas.length+" changes, and the matching rows light up in the scoreboard below.");
+    for(i=0;i<p.deltas.length;i++){$("#dDel").insertAdjacentHTML("beforeend",deltaHTML(p.deltas[i]));await pD.sleep(520)}
+    $("#dEv").innerHTML=p.ev.map(function(e){return '<span class="st impl">'+esc(e)+"</span>"}).join("");
+    await beat(1800);
+    if(k<PPL.length-1){
+      baton.textContent=p.give;moveBaton(k,p.give);
+      dCap("<b>"+p.short+"</b> hands <code>"+esc(p.give)+"</code> to <b>"+PPL[k+1].short+"</b>.");
+      await beat(1400);
+    }
+  }
+  dS.end=true;markStations(0,true);moveBaton(3,"layer.s + cycles");
+  dCap("<b>Relay complete.</b> The source became tokens, then an AST, typed shapes, fused Tensor IR, and finally MDT assembly with a cycle estimate. The scoreboard below is Phase 1 → Phase 2 at a glance.");
+  hlBoard(null);
+  for(var r=0;r<bRows.length;r++){bRows[r].classList.add("hl");await pD.sleep(260)}
+  await pD.sleep(900);hlBoard(null);
+}
+$("#dPlay").addEventListener("click",function(){if(!pD.running){dStepFlag=false;pD.start(playD);return}pD.paused=!pD.paused;pD.onState()});
+$("#dStep").addEventListener("click",function(){dStepFlag=true;if(!pD.running)pD.start(playD);else{pD.paused=false;pD.onState()}});
+$("#dPrev").addEventListener("click",function(){jumpD(Math.max(0,dS.cur-1))});
+$("#dNext").addEventListener("click",function(){jumpD(Math.min(PPL.length-1,dS.end?0:dS.cur+1))});
+stations.forEach(function(s,i){s.addEventListener("click",function(){jumpD(i)})});
+jumpD(0);
+window.addEventListener("resize",function(){moveBaton(dS.end?3:dS.cur,baton.textContent)});
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){moveBaton(dS.end?3:dS.cur,baton.textContent)});
+
+/* ---------- scroll-spy + keyboard ---------- */
+var secs=$$("main > section"),links=$$("#links a");
+function spy(){
+  var y=window.scrollY+120,idx=0;
+  secs.forEach(function(s,i){if(s.offsetTop<=y)idx=i});
+  var id=secs[idx].id;
+  links.forEach(function(a){var on=a.getAttribute("href")==="#"+id;a.classList.toggle("on",on);if(on&&a.scrollIntoView&&a.parentNode.scrollWidth>a.parentNode.clientWidth){a.parentNode.scrollLeft=a.offsetLeft-40}});
+  return idx;
+}
+window.addEventListener("scroll",spy,{passive:true});spy();
+document.addEventListener("keydown",function(e){
+  var t=e.target;if(t&&(/INPUT|SELECT|TEXTAREA/.test(t.tagName)||t.getAttribute("role")==="tab"))return;
+  if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft")return;
+  var i=spy(),n=e.key==="ArrowRight"?Math.min(secs.length-1,i+1):Math.max(0,i-1);
+  e.preventDefault();secs[n].scrollIntoView({behavior:reduce?"auto":"smooth"});
+});
+})();
+</script>

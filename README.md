@@ -147,6 +147,20 @@ are program inputs, which the toolchain fills with deterministic test values.
 
 ---
 
+## Presentations
+
+| File | What it is |
+|---|---|
+| [`presentation/MatrixDSL-Phase3.html`](presentation/MatrixDSL-Phase3.html) | Phase 2 → Phase 3: what changed, each member's work, and live simulations |
+| [`presentation/MatrixDSL-Presentation.html`](presentation/MatrixDSL-Presentation.html) | The whole project explained: language, pipeline, ISA, interactive simulations |
+| `Start MatrixDSL Lab.bat` | Windows: builds if needed, starts `mtxserve`, opens the Phase 3 page and the Lab |
+
+Open the HTML files in a browser. With `mtxserve` running, the Phase 3 page's
+simulations compile and run live; without it, they replay the recorded,
+verified results.
+
+---
+
 ## Reviews
 
 | Review | Focus | Report |

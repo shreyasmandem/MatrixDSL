@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MatrixDSL Final Report (IEEE)</title>
+<style>
+@page{size:A4;margin:19mm 15mm 22mm 15mm;@bottom-center{content:counter(page)}}
+html{font-family:"Times New Roman",Times,"Nimbus Roman",serif;font-size:10pt;line-height:1.24;color:#000}
+body{margin:0}
+.title{column-span:all;text-align:center;font-size:22pt;line-height:1.15;margin:0 0 10pt}
+.authors{column-span:all;display:grid;grid-template-columns:repeat(4,1fr);gap:6pt 10pt;text-align:center;font-size:9pt;line-height:1.25;margin-bottom:8pt}
+.authors .n{font-size:10.5pt}
+.authors i{font-style:italic}
+.faculty{column-span:all;text-align:center;font-size:9pt;line-height:1.25;margin:2pt auto 14pt;max-width:60%}
+.faculty .n{font-size:10.5pt}
+.cols{column-count:2;column-gap:7mm;column-fill:auto}
+.cols p{margin:0 0 4pt;text-align:justify;text-indent:1em;hyphens:auto}
+.cols p.noind{text-indent:0}
+.abstract,.index{font-weight:bold;font-size:9pt;text-align:justify;margin:0 0 6pt;line-height:1.22}
+.abstract i,.index i{font-style:italic}
+h2{font-size:10pt;font-weight:normal;font-variant:small-caps;text-align:center;letter-spacing:.02em;margin:10pt 0 4pt;break-after:avoid}
+h3{font-size:10pt;font-weight:normal;font-style:italic;margin:7pt 0 3pt;break-after:avoid}
+ul,ol{margin:0 0 4pt;padding-left:14pt}
+li{margin:0 0 2pt;text-align:justify}
+table{border-collapse:collapse;width:100%;font-size:7.6pt;line-height:1.18;margin:2pt 0 8pt;break-inside:avoid}
+th,td{border-top:.6pt solid #000;border-bottom:.6pt solid #000;padding:2pt 3pt;text-align:left;vertical-align:top}
+th{font-weight:bold}
+td.r,th.r{text-align:right}
+.tb{break-inside:avoid;page-break-inside:avoid}
+.tcap{caption-side:top;font-size:7.6pt;font-variant:small-caps;text-align:center;margin:8pt 0 2pt;line-height:1.2;break-after:avoid}
+.tcap b{font-weight:normal;display:block}
+figure{margin:6pt 0 8pt;break-inside:avoid;text-align:center}
+figure.wide{column-span:all}
+figcaption{font-size:7.6pt;text-align:justify;margin-top:3pt;line-height:1.2}
+figure img{max-width:100%}
+pre{font-family:"Courier New",Courier,monospace;font-size:7pt;line-height:1.2;background:#f3f3f3;border:.5pt solid #bbb;padding:4pt 5pt;margin:3pt 0 6pt;white-space:pre-wrap;text-align:left;break-inside:avoid}
+code{font-family:"Courier New",Courier,monospace;font-size:8.6pt}
+.eq{display:flex;justify-content:space-between;align-items:center;margin:4pt 0 5pt;font-style:italic}
+.eq span:first-child{flex:1;text-align:center}
+.eq .no{font-style:normal}
+.thm{margin:4pt 0;text-align:justify}
+.thm .h{font-style:italic}
+.proof{margin:0 0 6pt;text-align:justify}
+.proof .h{font-style:italic}
+.qed::after{content:" \220E"}
+.algo{border-top:1pt solid #000;border-bottom:1pt solid #000;margin:6pt 0;break-inside:avoid;font-size:8.4pt}
+.algo .ah{border-bottom:.6pt solid #000;padding:2pt 0;font-weight:bold}
+.algo ol{margin:3pt 0 3pt;padding-left:16pt}
+.algo li{margin:0;text-align:left}
+.foot{font-size:7.6pt;border-top:.5pt solid #000;padding-top:3pt;margin-top:8pt;text-align:justify;line-height:1.2}
+.refs{font-size:7.6pt;line-height:1.22}
+.refs div{display:grid;grid-template-columns:16pt 1fr;margin-bottom:2pt;text-align:justify}
+.small{font-size:8pt}
+svg text{font-family:"Times New Roman",Times,serif}
+</style>
+</head>
+<body>
+<div class="cols">
+
+<div class="title">MatrixDSL: Co-Designing a Matrix Language, a Tensor-Level Compiler and a Custom Matrix Instruction Set</div>
+
+<div class="authors">
+  <div><span class="n">Vinay A</span><br>Reg. No. 24BCB0131<br><i>School of Computer Science<br>and Engineering (SCOPE)</i><br>Vellore Institute of Technology<br>Vellore, India<br>vinayananda2@gmail.com</div>
+  <div><span class="n">Mudpe Parth Tulsidas</span><br>Reg. No. 24BDS0353<br><i>School of Computer Science<br>and Engineering (SCOPE)</i><br>Vellore Institute of Technology<br>Vellore, India</div>
+  <div><span class="n">Kandi Jeevitesh Reddy</span><br>Reg. No. 24BCE0350<br><i>School of Computer Science<br>and Engineering (SCOPE)</i><br>Vellore Institute of Technology<br>Vellore, India<br>kandi.jeevitesh2024@vitstudent.ac.in</div>
+  <div><span class="n">Shreyas Mandem</span><br>Reg. No. 24BCE0381<br><i>School of Computer Science<br>and Engineering (SCOPE)</i><br>Vellore Institute of Technology<br>Vellore, India<br>shreyas.mandem2024@vitstudent.ac.in</div>
+</div>
+<div class="faculty"><span class="n">Prof. Shalini L</span> (Faculty Guide)<br>Assistant Professor Sr. Grade 1, <i>School of Computer Science and Engineering (SCOPE)</i><br>Vellore Institute of Technology, Vellore, India · Cabin SJT 411 A11 · lshalini@vit.ac.in</div>
+
+<p class="abstract noind"><i>Abstract</i>—Compilers for machine-learning workloads lose most of their optimisation opportunities when matrix programs are lowered too early to scalar code. We present MatrixDSL, a small domain-specific language for matrix and neural-network computation, and a complete compiler that lowers it to MDT (MatrixDSL Target), a 24-instruction matrix instruction set architecture (ISA) with 4×4 FP32 matrix registers and a 64 KiB software-managed scratchpad that we designed together with the compiler. The pipeline runs a hand-written lexer and parser, shape-as-type semantic analysis, lowering to a static single assignment (SSA) Tensor IR, three optimisation passes (use-count-guarded operator fusion with epilogue fusion, dead-code elimination and capacity-aware scratchpad tiling), MDT instruction selection, and execution on a simulator with an analytical performance model. We prove that the fusion rewrite, the zero-padding memory layout and the identity-tile addition are value-preserving, and we validate the implementation by differential testing against an independent reference interpreter: 100 of 100 compiled program variants and 70 of 70 regression tests pass. On eight workloads, fusion and tiling together reduce modelled cycles by a geometric mean of 2.19× and DRAM traffic by 3.79×. The two optimisations are super-additive on fused workloads. The evaluation also exposes a scratchpad capacity cliff at 128×128 and an ISA gap that prevents softmax from compiling to native MDT code. Source code, results and an interactive browser-based laboratory are public at https://github.com/shreyasmandem/MatrixDSL.</p>
+
+<p class="index noind"><i>Index Terms</i>—domain-specific languages, compilers, intermediate representations, operator fusion, loop tiling, scratchpad memory, instruction set architecture, differential testing, machine-learning accelerators.</p>
+
+<h2>I. Introduction</h2>
+<p>Deep-learning compilers such as XLA [1], TVM [2] and Triton [4] exist because general-purpose compilers discard the structure of tensor programs too early. Once a matrix multiplication has become nested loops in LLVM IR [6], the compiler can no longer see that a multiplication followed by a bias addition and an activation is one computation (an <i>epilogue</i> that can be fused [1]), nor that the same weight tile is fetched from memory dozens of times. Production accelerator stacks avoid both losses by keeping a tensor-level IR, fusing producer–consumer chains and staging data in software-managed on-chip memory, as the Tensor Processing Unit does [7].</p>
+<p>MatrixDSL reproduces this design end to end, at a scale that a team of four students can build, read and measure within one course. The language makes the shape of every value part of its type, so dimension errors are compile-time errors. The compiler keeps matrix operations whole in a Tensor IR until the target-specific decisions have been made. The target, MDT, was specified in parallel so that every fused IR operation maps to an MDT instruction sequence.</p>
+<p class="noind">The paper makes the following contributions:</p>
+<ol>
+<li>A complete, working compilation pipeline from MatrixDSL source to executed MDT code, built with only a C++17 compiler (≈9,300 lines across compiler, tools and dashboard).</li>
+<li>A co-designed ISA. <code>MATMULACC</code> and <code>MATMULRELU</code> exist because the fusion pass emits exactly those patterns, and epilogue fusion of <code>relu(A·B+C)</code> needs no new opcode.</li>
+<li>Correctness arguments for the three rewrites the back end depends on (Section VI–VII). These are fusion soundness, the zero-padding invariant that lets ragged shapes run on a 4×4 unit, and exact matrix addition through the matrix unit's accumulate path.</li>
+<li>A verification method that makes compiled output bit-comparable with an oracle. It combines exact-arithmetic input generation with four-configuration differential testing [12], [13].</li>
+<li>A measured ablation study with three findings: super-additive fusion–tiling synergy, a scratchpad capacity cliff, and a concrete ISA gap.</li>
+</ol>
+<p>Section II reviews related work and Section III describes the project organisation. Sections IV–VIII present the language, architecture, middle end, back end and performance model. Section IX describes verification, Section X the evaluation and Section XI the interactive laboratory. Section XII discusses limitations and Section XIII concludes.</p>
+
+<div class="foot">This report is original work submitted for BCSE307P Compiler Design (Project A3, Team 13), School of Computer Science and Engineering (SCOPE), Vellore Institute of Technology, Vellore, India, Final Review, October 2026, under the guidance of Prof. Shalini L. Source code, test suites, raw results and the MatrixDSL Lab are available at <b>https://github.com/shreyasmandem/MatrixDSL</b>.</div>
+
+<h2>II. Background and Related Work</h2>
+<h3>A. Tensor Compilers and Intermediate Representations</h3>
+<p>XLA lowers whole TensorFlow graphs and fuses element-wise consumers into their producers. Snider and Liang [1] show that fusion accounts for much of its benefit. TVM [2] separates the algorithm from a schedule of loop transformations, a separation that Halide [3] introduced for image processing. Triton [4] exposes tiles as first-class values, and MLIR [5] provides a framework of dialects so that each level of abstraction can be optimised before lowering to LLVM [6]. MatrixDSL's Tensor IR plays the role of such a dialect: an SSA list of shape-typed matrix operations that sits between the AST and target code.</p>
+<h3>B. Accelerators and Software-Managed Memory</h3>
+<p>The TPU [7] pairs a systolic matrix unit with a large software-managed buffer whose contents the compiler, not a cache policy, decides. Blocking for reuse in a memory hierarchy is a classic compiler optimisation [8]. MDT adopts the same arrangement at teaching scale: eight 4×4 matrix registers, a 64 KiB scratchpad and DRAM.</p>
+<h3>C. Numeric Formats and Softmax</h3>
+<p>BF16 keeps FP32's exponent range with a shorter mantissa [9]. MDT supports it as a storage format. Numerically stable softmax subtracts the row maximum before exponentiation, and online normalisers [10] enable the softmax-epilogue fusion used by FlashAttention [11].</p>
+<h3>D. Compiler Testing</h3>
+<p>Differential testing compares implementations of the same specification [12]. Csmith [13] applied it to C compilers at scale. We apply it between the compiled MDT program and an independent reference interpreter, under four optimisation configurations.</p>
+
+<table><caption class="tcap">Table I<b>Positioning of MatrixDSL Against Representative Systems</b></caption>
+<tr><th>Property</th><th>XLA [1]</th><th>TVM [2]</th><th>Triton [4]</th><th>MatrixDSL</th></tr>
+<tr><td>Tensor-level IR</td><td>HLO</td><td>Relay/TIR</td><td>Tile IR</td><td>Tensor IR (19 ops)</td></tr>
+<tr><td>Fusion</td><td>Yes</td><td>Yes</td><td>Manual</td><td>Use-count guarded + epilogue</td></tr>
+<tr><td>Memory staging</td><td>Target-dependent</td><td>Schedules</td><td>Shared memory</td><td>Scratchpad pass</td></tr>
+<tr><td>Target ISA co-designed</td><td>No</td><td>No</td><td>No</td><td>Yes (MDT)</td></tr>
+<tr><td>Differential oracle</td><td>Tests</td><td>Tests</td><td>Tests</td><td>Built in, every run</td></tr>
+<tr><td>Scale</td><td>Production</td><td>Production</td><td>Production</td><td>Teaching, readable</td></tr>
+</table>
+
+<h2>III. Project Organisation</h2>
+<p>The project was carried out in three phases, each closed by a formal review. Interfaces between stages were frozen as C++ headers on the main branch at the first review, so that each member could build against a fixed contract on a personal branch. Table II lists the team. Table III summarises what each phase delivered, and Appendix B describes each member's work in detail.</p>
+<table><caption class="tcap">Table II<b>Team Members and Roles</b></caption>
+<tr><th>Member</th><th>Reg. No.</th><th>Role and owned stages</th><th>Branch</th></tr>
+<tr><td>Vinay A</td><td>24BCB0131</td><td>Lexer, parser, AST; diagnostics; compiler driver <code>matrixdslc</code></td><td>Vinay-A</td></tr>
+<tr><td>Mudpe Parth Tulsidas</td><td>24BDS0353</td><td>Semantic analysis, symbol table; differential tester <code>mtxverify</code></td><td>parth</td></tr>
+<tr><td>Kandi Jeevitesh Reddy</td><td>24BCE0350</td><td>Tensor IR, lowering, fusion/DCE/tiling passes, reference interpreter, LLVM IR</td><td>Jeevitesh</td></tr>
+<tr><td>Shreyas Mandem</td><td>24BCE0381</td><td>MDT ISA, code generator, simulator, runtime ABI, evaluation, MatrixDSL Lab, integration</td><td>Shreyas</td></tr>
+<tr><td colspan="4"><i>Faculty guide:</i> Prof. Shalini L, Assistant Professor Sr. Grade 1, SCOPE, VIT Vellore.</td></tr>
+</table>
+<table><caption class="tcap">Table III<b>Deliverables per Phase</b></caption>
+<tr><th>Review</th><th>Deliverables</th></tr>
+<tr><td>1</td><td>Language specification and grammar; MDT ISA (17 instructions); architecture; frozen interfaces; lexer; shape checker on hand-built ASTs; simulator.</td></tr>
+<tr><td>2</td><td>Batched <code>tensor</code> type and <code>softmax</code>; parser and AST; batch-aware shape rules; Tensor IR and fusion on hand-built graphs; 7 new instructions (24 total), 64 KiB scratchpad, BF16, performance model.</td></tr>
+<tr><td>3 (final)</td><td>AST→Tensor IR lowering; epilogue fusion, DCE, tiling; MDT code generator; runtime ABI; differential verification; ablation study; MatrixDSL Lab; this report.</td></tr>
+</table>
+
+<h2>IV. The MatrixDSL Language</h2>
+<p>A program is a sequence of declarations, assignments and <code>print</code> statements over FP32 matrices. Fig. 1 shows the grammar in EBNF. A <code>tensor</code> declaration with three bracketed dimensions adds a leading batch dimension. Matrix literals may contain signed decimal numbers.</p>
+<pre>program    ::= statement*
+statement  ::= decl | IDENT "=" expr ";" | "print" "(" IDENT ")" ";"
+decl       ::= ("matrix"|"tensor") IDENT ("[" INT "]"){2,3} ";"
+expr       ::= term (("+"|"-") term)*
+term       ::= factor ("*" factor)*
+factor     ::= IDENT | NUMBER | literal | "(" expr ")"
+             | ("matmul"|"transpose"|"relu"|"softmax") "(" args ")"
+literal    ::= "[" row ("," row)* "]"     row ::= "[" ["-"]NUMBER ("," ["-"]NUMBER)* "]"</pre>
+<p class="noind small" style="text-align:center">Fig. 1. MatrixDSL grammar (abridged).</p>
+<p>The type of a value is its shape (<i>b</i>, <i>r</i>, <i>c</i>). Table IV gives the typing rules that the semantic analyser enforces. Batch broadcasting follows the familiar NumPy convention restricted to the leading dimension: batches must be equal, or one of them must be 1.</p>
+<table><caption class="tcap">Table IV<b>Shape (Typing) Rules</b></caption>
+<tr><th>Expression</th><th>Rule</th><th>Result</th></tr>
+<tr><td><code>A ± B</code></td><td>r<sub>A</sub>=r<sub>B</sub>, c<sub>A</sub>=c<sub>B</sub>, b compatible</td><td>(max b, r, c)</td></tr>
+<tr><td><code>matmul(A,B)</code>, <code>A*B</code></td><td>c<sub>A</sub>=r<sub>B</sub>, b compatible</td><td>(max b, r<sub>A</sub>, c<sub>B</sub>)</td></tr>
+<tr><td><code>s*A</code></td><td>s is 1×1</td><td>shape of A</td></tr>
+<tr><td><code>transpose(A)</code></td><td>-</td><td>(b, c, r)</td></tr>
+<tr><td><code>relu</code>, <code>softmax</code></td><td>-</td><td>shape preserved</td></tr>
+<tr><td>Declarations</td><td>1 ≤ r, c ≤ 256; 1 ≤ b ≤ 1024</td><td>-</td></tr>
+</table>
+<p>Every lexical, syntax and semantic error is reported with its source line and a caret. For example, the compiler emits:</p>
+<pre>matmul_mismatch.mtx:6:5: error: cannot multiply matrix 4x3 with matrix 4x4
+  6 | C = matmul(A, B);
+    |     ^
+  note: matmul requires A.cols == B.rows, but 3 != 4</pre>
+
+<figure class="wide">
+<svg viewBox="0 0 1000 400" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#000"/></marker></defs>
+<rect x="0" y="0" width="1000" height="400" fill="#fff"/>
+<!-- source -->
+<rect x="10" y="70" width="90" height="60" fill="#fff" stroke="#000"/>
+<text x="55" y="96" font-size="13" text-anchor="middle">MatrixDSL</text><text x="55" y="113" font-size="13" text-anchor="middle">source (.mtx)</text>
+<!-- front end -->
+<rect x="125" y="22" width="235" height="160" fill="#f2f2f2" stroke="#000" stroke-dasharray="4 3"/>
+<text x="242" y="40" font-size="12" text-anchor="middle" font-style="italic">Front end (Vinay A, Mudpe Parth Tulsidas)</text>
+<rect x="140" y="55" width="95" height="44" fill="#fff" stroke="#000"/><text x="187" y="81" font-size="12" text-anchor="middle">Lexer</text>
+<rect x="250" y="55" width="95" height="44" fill="#fff" stroke="#000"/><text x="297" y="74" font-size="12" text-anchor="middle">Parser</text><text x="297" y="89" font-size="11" text-anchor="middle">→ AST</text>
+<rect x="140" y="118" width="205" height="48" fill="#fff" stroke="#000"/><text x="242" y="138" font-size="12" text-anchor="middle">Semantic analyser</text><text x="242" y="155" font-size="11" text-anchor="middle">shape = type, symbol table</text>
+<!-- middle end -->
+<rect x="385" y="22" width="250" height="160" fill="#f2f2f2" stroke="#000" stroke-dasharray="4 3"/>
+<text x="510" y="40" font-size="12" text-anchor="middle" font-style="italic">Middle end (Kandi Jeevitesh Reddy)</text>
+<rect x="400" y="55" width="105" height="44" fill="#fff" stroke="#000"/><text x="452" y="74" font-size="12" text-anchor="middle">Lowering</text><text x="452" y="89" font-size="11" text-anchor="middle">→ Tensor IR</text>
+<rect x="520" y="55" width="100" height="44" fill="#fff" stroke="#000"/><text x="570" y="74" font-size="12" text-anchor="middle">Fusion</text><text x="570" y="89" font-size="11" text-anchor="middle">(+ epilogue)</text>
+<rect x="400" y="118" width="105" height="48" fill="#fff" stroke="#000"/><text x="452" y="146" font-size="12" text-anchor="middle">DCE</text>
+<rect x="520" y="118" width="100" height="48" fill="#fff" stroke="#000"/><text x="570" y="137" font-size="12" text-anchor="middle">Scratchpad</text><text x="570" y="153" font-size="12" text-anchor="middle">tiling</text>
+<!-- back end -->
+<rect x="660" y="22" width="330" height="160" fill="#f2f2f2" stroke="#000" stroke-dasharray="4 3"/>
+<text x="825" y="40" font-size="12" text-anchor="middle" font-style="italic">Back end and target (Shreyas Mandem)</text>
+<rect x="675" y="55" width="120" height="44" fill="#fff" stroke="#000"/><text x="735" y="74" font-size="12" text-anchor="middle">MDT code</text><text x="735" y="89" font-size="12" text-anchor="middle">generator</text>
+<rect x="815" y="55" width="160" height="44" fill="#fff" stroke="#000"/><text x="895" y="74" font-size="12" text-anchor="middle">Assembler →</text><text x="895" y="89" font-size="12" text-anchor="middle">MDT simulator</text>
+<rect x="675" y="118" width="300" height="48" fill="#fff" stroke="#000"/><text x="825" y="137" font-size="11.5" text-anchor="middle">R0–R15 · V0–V7 · M0–M7 (4×4 FP32) · 64 KiB scratchpad · DRAM</text><text x="825" y="154" font-size="11.5" text-anchor="middle">runtime ABI (mdt_print, mdt_softmax) · performance model</text>
+<!-- arrows top -->
+<line x1="100" y1="100" x2="138" y2="78" stroke="#000" marker-end="url(#ar)"/>
+<line x1="235" y1="77" x2="248" y2="77" stroke="#000" marker-end="url(#ar)"/>
+<line x1="297" y1="99" x2="297" y2="116" stroke="#000" marker-end="url(#ar)"/>
+<line x1="345" y1="142" x2="398" y2="80" stroke="#000" marker-end="url(#ar)"/>
+<line x1="505" y1="77" x2="518" y2="77" stroke="#000" marker-end="url(#ar)"/>
+<line x1="570" y1="99" x2="470" y2="116" stroke="#000" marker-end="url(#ar)"/>
+<line x1="505" y1="142" x2="518" y2="142" stroke="#000" marker-end="url(#ar)"/>
+<line x1="620" y1="142" x2="673" y2="80" stroke="#000" marker-end="url(#ar)"/>
+<line x1="795" y1="77" x2="813" y2="77" stroke="#000" marker-end="url(#ar)"/>
+<line x1="895" y1="99" x2="895" y2="116" stroke="#000" marker-end="url(#ar)"/>
+<!-- bottom tier -->
+<rect x="125" y="240" width="235" height="56" fill="#fff" stroke="#000"/><text x="242" y="263" font-size="12" text-anchor="middle">Reference interpreter (oracle)</text><text x="242" y="280" font-size="11" text-anchor="middle">unoptimised Tensor IR, host FP32</text>
+<rect x="385" y="240" width="250" height="56" fill="#fff" stroke="#000"/><text x="510" y="263" font-size="12" text-anchor="middle">mtxverify / mtxbench</text><text x="510" y="280" font-size="11" text-anchor="middle">4 configurations, compare every print</text>
+<rect x="660" y="240" width="160" height="56" fill="#fff" stroke="#000"/><text x="740" y="263" font-size="12" text-anchor="middle">mtxserve</text><text x="740" y="280" font-size="11" text-anchor="middle">JSON API, 127.0.0.1</text>
+<rect x="840" y="240" width="150" height="56" fill="#fff" stroke="#000"/><text x="915" y="263" font-size="12" text-anchor="middle">Lab dashboard +</text><text x="915" y="280" font-size="12" text-anchor="middle">Chrome extension</text>
+<rect x="385" y="330" width="250" height="44" fill="#fff" stroke="#000"/><text x="510" y="350" font-size="12" text-anchor="middle">LLVM IR text emitter</text><text x="510" y="365" font-size="11" text-anchor="middle">@mdt.* tile intrinsics (.ll)</text>
+<line x1="452" y1="99" x2="242" y2="238" stroke="#000" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+<line x1="360" y1="268" x2="383" y2="268" stroke="#000" marker-end="url(#ar)"/>
+<line x1="895" y1="166" x2="560" y2="238" stroke="#000" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+<line x1="635" y1="268" x2="658" y2="268" stroke="#000" marker-end="url(#ar)"/>
+<line x1="820" y1="268" x2="838" y2="268" stroke="#000" marker-end="url(#ar)"/>
+<line x1="590" y1="166" x2="590" y2="328" stroke="#000" stroke-dasharray="3 2" marker-end="url(#ar)"/>
+<text x="1" y="395" font-size="11" font-style="italic">Solid arrows: compilation flow. Dashed arrows: values compared or emitted for inspection.</text>
+</svg>
+<figcaption><b>Fig. 2.</b> System architecture. The source passes through the front end, middle end and back end owned by different members (top). The reference interpreter evaluates the unoptimised Tensor IR, and <code>mtxverify</code>/<code>mtxbench</code> compare its output with the simulator's under four configurations (bottom). <code>mtxserve</code> exposes the same pipeline to the browser dashboard and Chrome extension.</figcaption>
+</figure>
+
+<h2>V. System Architecture</h2>
+<p>Fig. 2 shows the pipeline. A single <code>Pipeline</code> object runs every stage in order and retains each intermediate form: tokens, AST, Tensor IR before and after the passes, assembly and simulator output. The compiler driver, the differential tester, the benchmark harness and the dashboard backend are thin front ends over it, so every tool compiles a program in exactly the same way. Table V lists the tools.</p>
+<table><caption class="tcap">Table V<b>Tools Built on the Shared Pipeline</b></caption>
+<tr><th>Tool</th><th>Purpose</th></tr>
+<tr><td><code>matrixdslc</code></td><td>Compiler: <code>--emit-tokens/-ast/-tir/-llvm</code>, <code>-S</code>, <code>--run --perf --verify</code>, <code>--no-fusion</code>, <code>--no-tiling</code></td></tr>
+<tr><td><code>mdtsim</code></td><td>MDT assembler, simulator, performance model</td></tr>
+<tr><td><code>mtxverify</code></td><td>Differential tester (Section IX)</td></tr>
+<tr><td><code>mtxbench</code></td><td>Ablation study (Section X)</td></tr>
+<tr><td><code>mtxserve</code></td><td>Local JSON backend for the MatrixDSL Lab (Section XI)</td></tr>
+</table>
+
+<h2>VI. Tensor IR and Optimisation Passes</h2>
+<h3>A. Lowering to SSA</h3>
+<p>Lowering walks the typed AST and appends one Tensor IR operation per expression node, each annotated with its shape. An assignment rebinds a name to the operation that computed its value rather than copying it. As a result, <code>T = matmul(X,W); U = T + B; U = relu(U);</code> lowers to the same graph as <code>relu(matmul(X,W)+B)</code>, and named temporaries never block fusion. Observable behaviour is defined by <code>print</code>. A matrix read before it is ever assigned is a program input and becomes a <code>Load</code> operation.</p>
+<h3>B. Use-Count-Guarded Fusion</h3>
+<p>Table VI lists the fusion patterns. The Phase 3 addition is epilogue fusion: <code>FusedMatMulAcc → Relu</code> becomes a three-operand <code>FusedMatMulRelu</code> computing relu(<i>A·B+C</i>).</p>
+<table><caption class="tcap">Table VI<b>Fusion Patterns</b></caption>
+<tr><th>Pattern (producer has one use)</th><th>Result</th><th>MDT lowering</th></tr>
+<tr><td>MatMul → Relu</td><td>FusedMatMulRelu(A,B)</td><td><code>MATMULRELU</code></td></tr>
+<tr><td>MatMul → Add(C)</td><td>FusedMatMulAcc(A,B,C)</td><td>load C; <code>MATMULACC</code></td></tr>
+<tr><td>FusedMatMulAcc → Relu</td><td>FusedMatMulRelu(A,B,C)</td><td>load C; <code>MATMULACC</code>; <code>RELU</code> in register</td></tr>
+</table>
+<div class="thm"><span class="h">Proposition 1 (Fusion soundness):</span> Let producer <i>p</i> feed consumer <i>q</i> with use(<i>p</i>) = 1. Replacing <i>q</i> by the fused operation computing <i>q</i>(<i>p</i>(<i>x</i>)) directly from <i>p</i>'s operands, and deleting <i>p</i>, leaves the value of every <code>Print</code> unchanged.</div>
+<div class="proof"><span class="h">Proof:</span> Tensor IR is in SSA form, so every value is defined once and operations are pure. The fused operation computes, by definition, the same value <i>q</i>(<i>p</i>(<i>x</i>)) that <i>q</i> produced, so every user of <i>q</i> observes an identical value. The only value removed is <i>p</i>'s result. Since use(<i>p</i>) = 1 and its single user was <i>q</i>, no remaining operation, and in particular no <code>Print</code>, reads it. Every printed value is therefore unchanged. If use(<i>p</i>) &gt; 1, some other operation reads <i>p</i>, and deleting it would be incorrect. That is exactly the case the guard excludes. <span class="qed"></span></div>
+<p>The implementation is checked by a negative test (<code>second_use.mtx</code>) in which a matrix product is both printed and passed to <code>relu</code>. Fusion correctly does not fire.</p>
+<h3>C. Dead-Code Elimination</h3>
+<p>DCE marks every operation reachable backwards from a <code>Print</code> and erases the rest. Because operations are in SSA order, one reverse sweep reaches the fixed point. DCE removes the products that fusion absorbed.</p>
+<h3>D. Capacity-Aware Scratchpad Tiling</h3>
+<p>For a matrix-multiplication-family operation <i>C</i>(<i>M</i>×<i>N</i>) = <i>A</i>(<i>M</i>×<i>K</i>)·<i>B</i>(<i>K</i>×<i>N</i>), let <i>M<sub>t</sub></i>, <i>N<sub>t</sub></i>, <i>K<sub>t</sub></i> be the numbers of 4×4 tiles in each dimension. Each tile of <i>A</i> is read <i>u<sub>A</sub></i> = <i>N<sub>t</sub></i> times and each tile of <i>B</i> <i>u<sub>B</sub></i> = <i>M<sub>t</sub></i> times, multiplied by the batch count when the operand is broadcast. Algorithm 1 stages operands in the 64 KiB scratchpad.</p>
+<div class="algo"><div class="ah">Algorithm 1: Scratchpad tiling pass</div>
+<ol>
+<li><b>for each</b> matmul-family op <i>o</i> in program order <b>do</b></li>
+<li>&nbsp;&nbsp;mark <i>o</i> TiledMatMul if <i>M<sub>t</sub>N<sub>t</sub>K<sub>t</sub></i> &gt; 1</li>
+<li>&nbsp;&nbsp;candidates ← {operand <i>x</i> of <i>o</i> : <i>u<sub>x</sub></i> ≥ 2}</li>
+<li>&nbsp;&nbsp;sort candidates by saved bytes 64·tiles(<i>x</i>)·(<i>u<sub>x</sub></i> − 1), descending</li>
+<li>&nbsp;&nbsp;used ← 0</li>
+<li>&nbsp;&nbsp;<b>for each</b> candidate <i>x</i> <b>do</b></li>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<b>if</b> used + 64·tiles(<i>x</i>) ≤ 65 536 <b>then</b></li>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;insert ScratchStore(<i>x</i>) at offset used, then ScratchLoad</li>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rewire <i>o</i> to read the ScratchLoad; used += 64·tiles(<i>x</i>)</li>
+<li>&nbsp;&nbsp;&nbsp;&nbsp;<b>else</b> record "does not fit"</li>
+</ol></div>
+<div class="thm"><span class="h">Proposition 2 (Staging profitability):</span> Under the MDT latency model (DRAM load 8 cycles, scratchpad access 1 cycle), staging a tile read <i>u</i> times reduces its transfer cycles if and only if <i>u</i> ≥ 2.</div>
+<div class="proof"><span class="h">Proof:</span> Unstaged, the tile is loaded from DRAM at each use, costing 8<i>u</i> cycles. Staged, it is loaded once (8), stored to the scratchpad once (1) and read <i>u</i> times (<i>u</i>), costing 9 + <i>u</i>. Staging is cheaper iff 8<i>u</i> &gt; 9 + <i>u</i>, i.e. 7<i>u</i> &gt; 9, i.e. <i>u</i> &gt; 9/7. Since <i>u</i> is an integer, this holds iff <i>u</i> ≥ 2. <span class="qed"></span></div>
+<p>The pass's decisions are visible with <code>--stats</code>. For <code>matmul_32</code>, it reports:</p>
+<pre>tiled matmuls        1
+staged A of %6: 64 tiles, each reused 8x, saves 28672 DRAM bytes
+staged B of %6: 64 tiles, each reused 8x, saves 28672 DRAM bytes</pre>
+
+<h2>VII. MDT Instruction Set and Back End</h2>
+<h3>A. Instruction Set</h3>
+<p>MDT is a 32-bit load/store architecture with sixteen scalar registers, eight 128-bit vector registers and eight 4×4 FP32 matrix registers (64 B each). Table VII summarises its 24 instructions. The scratchpad is reached by the <code>SCRATCHLOAD</code>/<code>SCRATCHSTORE</code> forms of load and store. Phase 3 changed the compiler, not the ISA.</p>
+<table><caption class="tcap">Table VII<b>MDT Instruction Set (24 Instructions)</b></caption>
+<tr><th>Class</th><th>Instructions</th><th class="r">Lat.</th></tr>
+<tr><td>Scalar</td><td>NOP ADD SUB MUL</td><td class="r">1</td></tr>
+<tr><td>Memory</td><td>LOAD STORE (DRAM 8, scratchpad 1)</td><td class="r">8/1</td></tr>
+<tr><td>Control</td><td>BR BEQ BNE JMP CALL RET</td><td class="r">1</td></tr>
+<tr><td>Vector</td><td>VADD VMUL</td><td class="r">2</td></tr>
+<tr><td>Matrix</td><td>MATMUL TRANSPOSE RELU</td><td class="r">4/2/2</td></tr>
+<tr><td>Fused (Ph. 2)</td><td>MATMULACC MATMULRELU</td><td class="r">4</td></tr>
+<tr><td>Convert (Ph. 2)</td><td>CVT.F32.BF16 CVT.BF16.F32</td><td class="r">1</td></tr>
+<tr><td>Reduce (Ph. 2)</td><td>VREDSUM MROWMAX MROWSUM</td><td class="r">2</td></tr>
+</table>
+<h3>B. Memory Layout and the Zero-Padding Invariant</h3>
+<p>Every DRAM-resident value receives one 64-byte-aligned buffer. The buffer is row-major, with rows and columns rounded up to multiples of four (<i>r̂</i> = 4⌈<i>r</i>/4⌉, <i>ĉ</i> = 4⌈<i>c</i>/4⌉) and batches stacked. Tiles are read with strided loads (<code>LOADT</code>). Fig. 3 illustrates a 5×3 matrix.</p>
+<figure>
+<svg viewBox="0 0 300 150" width="80%" xmlns="http://www.w3.org/2000/svg">
+<rect width="300" height="150" fill="#fff"/>
+<g stroke="#000" stroke-width=".6">
+<rect x="20" y="10" width="120" height="120" fill="#fff"/>
+<rect x="20" y="10" width="45" height="75" fill="#dcdcdc"/>
+</g>
+<g stroke="#999" stroke-width=".4">
+<line x1="35" y1="10" x2="35" y2="130"/><line x1="50" y1="10" x2="50" y2="130"/><line x1="65" y1="10" x2="65" y2="130"/><line x1="80" y1="10" x2="80" y2="130"/><line x1="95" y1="10" x2="95" y2="130"/><line x1="110" y1="10" x2="110" y2="130"/><line x1="125" y1="10" x2="125" y2="130"/>
+<line x1="20" y1="25" x2="140" y2="25"/><line x1="20" y1="40" x2="140" y2="40"/><line x1="20" y1="55" x2="140" y2="55"/><line x1="20" y1="70" x2="140" y2="70"/><line x1="20" y1="85" x2="140" y2="85"/><line x1="20" y1="100" x2="140" y2="100"/><line x1="20" y1="115" x2="140" y2="115"/>
+</g>
+<g stroke="#000" stroke-width="1.6" fill="none"><line x1="80" y1="10" x2="80" y2="130"/><line x1="20" y1="70" x2="140" y2="70"/><rect x="20" y="10" width="120" height="120"/></g>
+<text x="160" y="40" font-size="10">grey: real 5×3 values</text>
+<text x="160" y="56" font-size="10">white: zero padding</text>
+<text x="160" y="72" font-size="10">bold: 4×4 tiles (2×1 used,</text>
+<text x="160" y="86" font-size="10">buffer padded to 8×4)</text>
+<text x="160" y="106" font-size="10">row stride = 4·4 = 16 B</text>
+</svg>
+<figcaption><b>Fig. 3.</b> Padded layout of a 5×3 matrix. Partial tiles are completed with zeros, so the 4×4 matrix unit needs no masking.</figcaption>
+</figure>
+<div class="thm"><span class="h">Lemma 1 (Zero-padding invariant):</span> If every input and constant buffer has zero padding, every buffer produced by the generated code has zero padding, and its real region holds the mathematically correct values.</div>
+<div class="proof"><span class="h">Proof:</span> Inputs and constants are emitted zero-padded. We consider each operation applied to zero-padded operands and examine the padding of its result (indices <i>i</i> ≥ <i>r</i> or <i>j</i> ≥ <i>c</i>).
+(i) <i>Add/Sub</i>: 0 ± 0 = 0.
+(ii) <i>Scalar multiply</i>: <i>s</i>·0 = 0.
+(iii) <i>Transpose</i> maps padding positions to padding positions.
+(iv) <i>Relu</i>: max(0,0) = 0.
+(v) <i>Matrix product</i>: <i>C<sub>ij</sub></i> = Σ<sub><i>k</i>&lt;<i>K̂</i></sub> <i>A<sub>ik</sub>B<sub>kj</sub></i>. For a padding row <i>i</i> ≥ <i>M</i>, every <i>A<sub>ik</sub></i> = 0, and similarly for a padding column of <i>B</i>, so <i>C<sub>ij</sub></i> = 0. For a real entry, the extra terms with <i>k</i> ≥ <i>K</i> have <i>A<sub>ik</sub></i> = 0 and contribute nothing, so <i>C<sub>ij</sub></i> equals the unpadded sum. Fused variants add a zero-padded bias and apply relu, preserving both properties.
+(vi) <i>Softmax</i>: the runtime normalises only the real <i>c</i> columns and writes zeros to all padding explicitly.
+By induction over the operations in SSA order, every buffer satisfies the invariant. <span class="qed"></span></div>
+<h3>C. Instruction Selection</h3>
+<p>Table VIII gives the selection for each operation, one 4×4 output tile at a time. Register plan: M0 accumulator, M1/M2 operands, M3 staging, M5 scale tile, M6 = −<i>I</i>, M7 = +<i>I</i>.</p>
+<table><caption class="tcap">Table VIII<b>Instruction Selection per Output Tile</b></caption>
+<tr><th>Tensor IR</th><th>MDT sequence</th></tr>
+<tr><td>MatMul / TiledMatMul</td><td><code>MATMUL</code>, then <code>MATMULACC</code> per extra <i>k</i>-tile</td></tr>
+<tr><td>FusedMatMulAcc</td><td>LOAD M0←C; <code>MATMULACC</code> × <i>K<sub>t</sub></i></td></tr>
+<tr><td>FusedMatMulRelu</td><td><code>MATMULRELU</code> (<i>K<sub>t</sub></i>=1, no bias) or accumulate + <code>RELU M0,M0</code></td></tr>
+<tr><td>Add / Sub</td><td><code>MATMULACC M0, M1, M7</code> (or M6)</td></tr>
+<tr><td>ScalarMul</td><td><code>MATMUL M0, M1, M5</code>, M5 = <i>s·I</i></td></tr>
+<tr><td>Transpose / Relu</td><td><code>TRANSPOSE</code> on tile (<i>j,i</i>) / <code>RELU</code></td></tr>
+<tr><td>Softmax / Print</td><td><code>CALL mdt_softmax</code> / <code>CALL mdt_print</code></td></tr>
+<tr><td>ScratchStore</td><td>LOAD M3 + <code>SCRATCHSTORE</code>, once per tile</td></tr>
+</table>
+<div class="thm"><span class="h">Lemma 2 (Exact addition through the matrix unit):</span> With M7 = <i>I</i>, <code>MATMULACC M0, M1, M7</code> sets M0 to M0 + M1 exactly in IEEE-754 FP32, and with M6 = −<i>I</i> to M0 − M1.</div>
+<div class="proof"><span class="h">Proof:</span> The instruction computes M0<sub>ij</sub> + Σ<sub>k</sub> M1<sub>ik</sub>·I<sub>kj</sub>. The product M1<sub>ik</sub>·I<sub>kj</sub> equals M1<sub>ij</sub> exactly when <i>k</i> = <i>j</i> (multiplication by 1 is exact) and is a signed zero otherwise. Adding a zero to a finite value leaves it unchanged, so the partial sum is exactly M1<sub>ij</sub> and one correctly rounded addition gives fl(M0<sub>ij</sub> + M1<sub>ij</sub>), the IEEE sum. Replacing <i>I</i> by −<i>I</i> negates M1<sub>ij</sub> exactly. <span class="qed"></span></div>
+<p>Without this, MDT would add a tile with sixteen 4-lane vector instructions, each load paying the 8-cycle DRAM latency. The matrix unit does it in three instructions per tile.</p>
+<h3>D. Runtime ABI</h3>
+<p>MDT deliberately has no transcendental instruction and no I/O. <code>mdt_softmax</code> and <code>mdt_print</code> are host functions inside the simulator, reached by <code>CALL</code> with arguments in R1–R6. Softmax is charged 4 cycles and 8 DRAM bytes per element, and print is excluded from the model as host I/O.</p>
+<h3>E. Generated Code</h3>
+<p>Fig. 4 shows the Tensor IR and the generated code for one layer. The three source operations become a single fused tile operation with one store.</p>
+<pre>; Tensor IR after passes           ; generated MDT assembly
+%0 = Load @X : 4x4                 ADD    R1, R0, 0     ; &amp;in_X
+%1 = Load @W : 4x4                 ADD    R2, R0, 64    ; &amp;in_W
+%2 = Load @B : 4x4                 ADD    R3, R0, 128   ; &amp;in_B
+%3 = FusedMatMulRelu %0 %1 %2      ADD    R4, R0, 192   ; &amp;t3
+%4 = Print %3 @Y : 4x4             LOAD   M0, [R3 + 0]  ; bias
+                                   LOAD   M1, [R1 + 0]
+                                   LOAD   M2, [R2 + 0]
+                                   MATMULACC M0, M1, M2
+                                   RELU   M0, M0
+                                   STORE  M0, [R4 + 0]</pre>
+<p class="noind small" style="text-align:center">Fig. 4. <code>Y = relu(matmul(X, W) + B)</code> after the passes and its generated MDT code.</p>
+<h3>F. LLVM IR</h3>
+<p><code>--emit-llvm</code> writes a textual LLVM module of calls to the reserved <code>@mdt.*</code> tile intrinsics fixed at the first review. This keeps the LLVM path inspectable without linking LLVM. The TableGen target description remains available as an opt-in build.</p>
+
+<h2>VIII. Performance Model</h2>
+<p>The simulator records each executed instruction's latency <i>ℓ<sub>i</sub></i> and class (transfer, compute or other). The sequential estimate is</p>
+<div class="eq"><span>T<sub>seq</sub> = Σ<sub>i</sub> ℓ<sub>i</sub></span><span class="no">(1)</span></div>
+<p>The trace is run-length encoded into maximal runs <i>R</i><sub>1</sub>, …, <i>R<sub>m</sub></i> of one class with cycle sums <i>t</i><sub>1</sub>, …, <i>t<sub>m</sub></i>. Adjacent transfer/compute runs are paired left to right without overlap, and each pair costs the larger of the two:</p>
+<div class="eq"><span>T<sub>ovl</sub> = Σ<sub>paired (a,b)</sub> max(t<sub>a</sub>, t<sub>b</sub>) + Σ<sub>unpaired c</sub> t<sub>c</sub></span><span class="no">(2)</span></div>
+<div class="thm"><span class="h">Proposition 3 (Bounds of the overlap estimate):</span> ½ T<sub>seq</sub> ≤ T<sub>ovl</sub> ≤ T<sub>seq</sub>.</div>
+<div class="proof"><span class="h">Proof:</span> Each run appears in exactly one term of (2). For a pair, (<i>t<sub>a</sub></i> + <i>t<sub>b</sub></i>)/2 ≤ max(<i>t<sub>a</sub></i>, <i>t<sub>b</sub></i>) ≤ <i>t<sub>a</sub></i> + <i>t<sub>b</sub></i>. An unpaired run contributes its own <i>t<sub>c</sub></i>, which lies between <i>t<sub>c</sub></i>/2 and <i>t<sub>c</sub></i>. Summing over all terms and using Σ<i>t</i> = <i>T<sub>seq</sub></i> gives the result. <span class="qed"></span></div>
+<p>The model is analytical and is not cycle-accurate. It compares code-generation strategies on equal terms. It does not predict silicon.</p>
+
+<h2>IX. Verification Methodology</h2>
+<p>Every measurement in Section X is gated on correctness. (1) <i>Oracle</i>: the reference interpreter evaluates the <i>unoptimised</i> Tensor IR in FP32 on the host. It has no tiles, registers or scratchpad and shares no code with the back end. (2) <i>Inputs</i>: never-assigned matrices are filled by a seeded linear congruential generator with values <i>k</i>/8, <i>k</i> ∈ {−16, …, 16}. (3) <i>Four-way testing</i>: <code>mtxverify</code> compiles each program under {baseline, fusion, tiling, fusion+tiling}, runs it, and compares every printed value (relative tolerance 10<sup>−5</sup>). (4) <i>Negative tests</i>: programs marked <code>expect: error</code> must be rejected with the expected diagnostic text.</p>
+<div class="thm"><span class="h">Proposition 4 (Exactness of the test arithmetic):</span> For inputs that are multiples of 1/8 in [−2, 2] and contraction length <i>K</i> ≤ 256, every intermediate of a matrix product, bias addition, relu or transpose is exactly representable in FP32. Results are therefore independent of summation order, and fused, tiled and unfused variants agree bit for bit.</div>
+<div class="proof"><span class="h">Proof:</span> Each product of two inputs is a multiple of 1/64 with magnitude at most 4. Any partial sum of at most <i>K</i> such products is a multiple of 1/64 with magnitude at most 4<i>K</i> ≤ 1024, so it is an integer multiple <i>n</i>/64 with |<i>n</i>| ≤ 65 536 = 2<sup>16</sup> &lt; 2<sup>24</sup>. Every integer of magnitude below 2<sup>24</sup> is exact in FP32's 24-bit significand, and scaling by the power of two 2<sup>−6</sup> is exact, so each partial sum, and hence each rounding step, is exact. Adding a bias (a multiple of 1/8) keeps the result a multiple of 1/64 within range. Relu and transpose only select or move values. Since no operation rounds, the order of summation is irrelevant. <span class="qed"></span></div>
+<p>Programs that apply softmax, or a second layer to already-multiplied values, are not covered by Proposition 4. For softmax, the runtime and the oracle use the same operation order, and the tolerance absorbs any remaining difference. Table IX summarises the test results. Appendix A reproduces the raw tool output.</p>
+<table><caption class="tcap">Table IX<b>Verification Results</b></caption>
+<tr><th>Suite</th><th class="r">Count</th><th class="r">Pass</th></tr>
+<tr><td>Lexer / parser (Vinay A)</td><td class="r">12 / 16</td><td class="r">28</td></tr>
+<tr><td>Semantic (Mudpe Parth Tulsidas)</td><td class="r">9</td><td class="r">9</td></tr>
+<tr><td>Reference runtime (Kandi Jeevitesh Reddy)</td><td class="r">9</td><td class="r">9</td></tr>
+<tr><td>Hand-written MDT programs (Shreyas Mandem)</td><td class="r">17</td><td class="r">17</td></tr>
+<tr><td>Driver accept/reject, e2e, ablation</td><td class="r">7</td><td class="r">7</td></tr>
+<tr><td><b>All CTest suites</b></td><td class="r"><b>70</b></td><td class="r"><b>70</b></td></tr>
+<tr><td>Differential runs (25 programs × 4 configs)</td><td class="r">100</td><td class="r">100</td></tr>
+<tr><td>Negative programs rejected</td><td class="r">6</td><td class="r">6</td></tr>
+</table>
+<p>The differential tests also found real defects during integration (Table X), which were fixed before the measurements were taken.</p>
+<table><caption class="tcap">Table X<b>Defects Found by End-to-End Testing</b></caption>
+<tr><th>Defect</th><th>Fix</th></tr>
+<tr><td>Lexer never emitted <code>tensor</code>/<code>softmax</code> tokens</td><td>Keyword table updated</td></tr>
+<tr><td>Negative matrix-literal elements rejected</td><td>Optional sign in literal rows</td></tr>
+<tr><td>Shadowed names outlived their scope</td><td><code>popScope</code> updates declaration order</td></tr>
+<tr><td>Test driver quoting broke under Windows</td><td>Command wrapped for <code>cmd.exe</code></td></tr>
+</table>
+
+<h2>X. Evaluation</h2>
+<h3>A. Setup</h3>
+<p>We use eight workloads: a single 4×4 layer, a two-layer perceptron (16×16), a residual block (32×32), a batch of eight 16×16 layers with shared weights, one-head scaled dot-product attention (16×16), and square matrix multiplication at 32, 64 and 128. Each is compiled under four configurations, executed on <code>mdtsim</code> and verified against the oracle. All 32 runs pass. The baseline configuration (fusion and tiling disabled) represents a traditional compilation of the same program for the same hardware.</p>
+<figure class="wide"><img src="ablation.svg" alt="Speed-up chart" style="width:78%">
+<figcaption><b>Fig. 5.</b> Speed-up over the baseline in overlap-aware modelled cycles, measured by <code>mdtsim</code>, for fusion only, scratchpad tiling only, and both. Every run was verified against the reference interpreter.</figcaption></figure>
+<table><caption class="tcap">Table XI<b>Measured Results (Baseline vs. Fusion + Tiling)</b></caption>
+<tr><th>Workload</th><th class="r">Base cyc.</th><th class="r">Ours cyc.</th><th class="r">Speed-up</th><th class="r">Base DRAM</th><th class="r">Ours DRAM</th></tr>
+<tr><td>layer_4x4</td><td class="r">73</td><td class="r">39</td><td class="r">1.87×</td><td class="r">576 B</td><td class="r">256 B</td></tr>
+<tr><td>mlp_16</td><td class="r">3,337</td><td class="r">1,543</td><td class="r">2.16×</td><td class="r">26.1 K</td><td class="r">8.0 K</td></tr>
+<tr><td>residual_32</td><td class="r">11,273</td><td class="r">4,103</td><td class="r">2.75×</td><td class="r">88.1 K</td><td class="r">16.0 K</td></tr>
+<tr><td>batched_layer</td><td class="r">14,345</td><td class="r">5,143</td><td class="r">2.79×</td><td class="r">112.1 K</td><td class="r">25.0 K</td></tr>
+<tr><td>attention_16</td><td class="r">3,862</td><td class="r">2,838</td><td class="r">1.36×</td><td class="r">24.1 K</td><td class="r">12.1 K</td></tr>
+<tr><td>matmul_32</td><td class="r">8,711</td><td class="r">3,591</td><td class="r">2.43×</td><td class="r">68.0 K</td><td class="r">12.0 K</td></tr>
+<tr><td>matmul_64</td><td class="r">67,591</td><td class="r">22,535</td><td class="r">3.00×</td><td class="r">528 K</td><td class="r">48 K</td></tr>
+<tr><td>matmul_128</td><td class="r">532,487</td><td class="r">312,327</td><td class="r">1.70×</td><td class="r">4.06 M</td><td class="r">2.13 M</td></tr>
+</table>
+<table><caption class="tcap">Table XII<b>Geometric Means over the Eight Workloads</b></caption>
+<tr><th>Configuration</th><th class="r">Speed-up</th><th class="r">DRAM reduction</th></tr>
+<tr><td>Fusion only</td><td class="r">1.20×</td><td class="r">1.22×</td></tr>
+<tr><td>Scratchpad tiling only</td><td class="r">1.70×</td><td class="r">2.64×</td></tr>
+<tr><td><b>Fusion + tiling</b></td><td class="r"><b>2.19×</b></td><td class="r"><b>3.79×</b></td></tr>
+</table>
+<h3>B. Findings</h3>
+<p><i>F1, super-additivity.</i> On <code>batched_layer</code>, fusion alone gives 1.40× and tiling alone 1.55×, but together they give 2.79×, more than their product (2.17×). Fusion removes the stored and reloaded intermediates, leaving traffic dominated by reads of the broadcast weight tiles. Each of those is reused 32 times (four output row blocks × eight batches), and that is exactly what staging removes.</p>
+<p><i>F2, capacity cliff.</i> Tiling's benefit grows from 2.43× at 32×32 to 3.00× at 64×64 (11× less DRAM traffic), then falls to 1.70× at 128×128. Each 128×128 operand occupies exactly 64 KiB, so only one of the two can be staged. This motivates a second blocking level that stages scratchpad-sized panels [8].</p>
+<p><i>F3, instructions are the wrong metric.</i> Staging adds 11–24% more instructions (e.g. 1,610 → 1,866 on <code>matmul_32</code>), yet cycles fall by 2.4×, because 8-cycle DRAM loads become 1-cycle scratchpad loads.</p>
+<p><i>F4, missing patterns.</i> Fusion gives no gain on attention, whose chain MatMul → ScalarMul → Softmax contains no fusible pair. Scale and online-softmax epilogues [10], [11] are the natural next patterns.</p>
+<p><i>F5, an ISA gap.</i> <code>MROWMAX</code> and <code>MROWSUM</code> reduce one tile, but rows wider than four columns span several tiles. Combining per-tile maxima needs a lane-wise vector maximum, and normalisation needs a row-broadcast divide. Softmax is therefore a runtime call. The compiler pinpoints the minimal ISA extension.</p>
+
+<h2>XI. The MatrixDSL Lab</h2>
+<p><code>mtxserve</code> is a dependency-free C++ HTTP server bound to 127.0.0.1 that exposes the pipeline as a JSON API (<code>/api/run</code>, <code>/api/suite</code>, <code>/api/programs</code>). A browser dashboard and a Manifest V3 Chrome extension (Fig. 6) send programs to it. They display the traditional and optimised compilations side by side as cards, an animated race and the simulator's transfer/compute timeline. They also show the Tensor IR before and after the passes and the generated assembly, and they re-run the whole ablation study live. The scalar-core figure in the dashboard is an analytic lower bound of one multiply–accumulate per cycle and is labelled as such.</p>
+<figure class="wide"><img src="lab.png" alt="MatrixDSL Lab" style="width:86%">
+<figcaption><b>Fig. 6.</b> MatrixDSL Lab comparing a traditional compilation with MatrixDSL on <code>batched_layer</code>. Every number is computed live by the compiler and simulator, and all four configurations are verified.</figcaption></figure>
+
+<h2>XII. Limitations and Threats to Validity</h2>
+<ul>
+<li>The cycle model has fixed latencies and no bandwidth contention. Runtime calls are charged at a fixed per-element rate, so conclusions concern relative costs only.</li>
+<li>Code is generated straight-line (fully unrolled). Loop overhead is absent in all configurations alike, but code size grows with the problem (≈100 k instructions for <code>matmul_128</code>).</li>
+<li>One tile size (4×4) and one scratchpad size (64 KiB) were studied. The cliff in F2 moves with the scratchpad size.</li>
+<li>Inputs are synthetic. Correctness does not depend on the values, and the model's cycle and byte counts do not depend on them at all.</li>
+<li>MDT exists as a specification, assembler and simulator, not as hardware.</li>
+</ul>
+
+<h2>XIII. Conclusion and Future Work</h2>
+<p>MatrixDSL shows that the central ideas of production tensor compilers can be co-designed with a target ISA, implemented end to end, verified by an oracle, and measured, within a single course project. Keeping matrix operations whole until target-specific decisions are made enabled fusion and scratchpad staging that together cut modelled cycles by 2.19× and DRAM traffic by 3.79×. Proofs of the rewrites, differential testing and the browser laboratory let every result be checked and reproduced. Future work is second-level blocking to remove the capacity cliff, scale and softmax epilogues, the two-instruction ISA extension for native softmax, loop generation instead of full unrolling, and lowering of the emitted <code>@mdt.*</code> intrinsics through the LLVM TableGen back end.</p>
+
+<h2>Acknowledgment</h2>
+<p>The authors thank Prof. Shalini L, School of Computer Science and Engineering, Vellore Institute of Technology, for her guidance throughout the three reviews of this project.</p>
+
+<h2>References</h2>
+<div class="refs">
+<div><span>[1]</span><span>D. Snider and R. Liang, "Operator fusion in XLA: Analysis and evaluation," arXiv:2301.13062, 2023.</span></div>
+<div><span>[2]</span><span>T. Chen <i>et al.</i>, "TVM: An automated end-to-end optimizing compiler for deep learning," in <i>Proc. USENIX OSDI</i>, 2018, pp. 578–594.</span></div>
+<div><span>[3]</span><span>J. Ragan-Kelley <i>et al.</i>, "Halide: A language and compiler for optimizing parallelism, locality, and recomputation in image processing pipelines," in <i>Proc. ACM PLDI</i>, 2013, pp. 519–530.</span></div>
+<div><span>[4]</span><span>P. Tillet, H. T. Kung, and D. Cox, "Triton: An intermediate language and compiler for tiled neural network computations," in <i>Proc. ACM MAPL</i>, 2019, pp. 10–19.</span></div>
+<div><span>[5]</span><span>C. Lattner <i>et al.</i>, "MLIR: Scaling compiler infrastructure for domain specific computation," in <i>Proc. IEEE/ACM CGO</i>, 2021, pp. 2–14.</span></div>
+<div><span>[6]</span><span>C. Lattner and V. Adve, "LLVM: A compilation framework for lifelong program analysis and transformation," in <i>Proc. IEEE/ACM CGO</i>, 2004, pp. 75–86.</span></div>
+<div><span>[7]</span><span>N. P. Jouppi <i>et al.</i>, "In-datacenter performance analysis of a tensor processing unit," in <i>Proc. ACM/IEEE ISCA</i>, 2017, pp. 1–12.</span></div>
+<div><span>[8]</span><span>M. S. Lam, E. E. Rothberg, and M. E. Wolf, "The cache performance and optimizations of blocked algorithms," in <i>Proc. ACM ASPLOS</i>, 1991, pp. 63–74.</span></div>
+<div><span>[9]</span><span>D. Kalamkar <i>et al.</i>, "A study of BFLOAT16 for deep learning training," arXiv:1905.12322, 2019.</span></div>
+<div><span>[10]</span><span>M. Milakov and N. Gimelshein, "Online normalizer calculation for softmax," arXiv:1805.02867, 2018.</span></div>
+<div><span>[11]</span><span>T. Dao <i>et al.</i>, "FlashAttention: Fast and memory-efficient exact attention with IO-awareness," in <i>Proc. NeurIPS</i>, 2022.</span></div>
+<div><span>[12]</span><span>W. M. McKeeman, "Differential testing for software," <i>Digital Tech. J.</i>, vol. 10, no. 1, pp. 100–107, 1998.</span></div>
+<div><span>[13]</span><span>X. Yang, Y. Chen, E. Eide, and J. Regehr, "Finding and understanding bugs in C compilers," in <i>Proc. ACM PLDI</i>, 2011, pp. 283–294.</span></div>
+<div><span>[14]</span><span>IEEE Standard for Floating-Point Arithmetic, IEEE Std 754-2019, 2019.</span></div>
+<div><span>[15]</span><span>MatrixDSL source repository. [Online]. Available: https://github.com/shreyasmandem/MatrixDSL</span></div>
+</div>
+
+<h2>Appendix A: Reproducibility and Raw Output</h2>
+<p class="noind">Build, test and reproduce every number:</p>
+<pre>git clone https://github.com/shreyasmandem/MatrixDSL
+cmake -S MatrixDSL -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+ctest --test-dir build
+build/bin/mtxverify tests/e2e examples benchmarks/workloads
+build/bin/mtxbench benchmarks/workloads --md r.md --csv r.csv</pre>
+<p class="noind">Recorded output on the final build (MinGW-w64 GCC, Windows 11):</p>
+<pre>$ ctest --test-dir build
+100% tests passed out of 70
+
+$ mtxverify --quiet tests/e2e examples benchmarks/workloads
+31 passed, 0 failed
+
+$ matrixdslc benchmarks/workloads/layer_4x4.mtx --run --perf --verify
+Y = (4x4)
+  [    0.8750    0.0000    0.0000    4.7188 ]
+  [    1.5156    3.7188    2.8438    0.0000 ]
+  [    3.0312    0.0000    2.6406    4.2188 ]
+  [    0.0000    0.2031    0.0000    0.0000 ]
+  Instructions executed          : 17
+  Bytes moved (DRAM)             : 256
+  Estimated cycles, sequential   : 49
+  Estimated cycles, overlap-aware: 39
+verify: PASS - 1 print(s) match the reference interpreter
+
+$ mtxbench benchmarks/workloads
+All 32 runs verified against the reference interpreter: yes</pre>
+
+<h2>Appendix B: Individual Contributions</h2>
+<p><b>Vinay A (24BCB0131).</b> He built the hand-written lexer and the recursive-descent parser with panic-mode recovery, including the Phase 2 <code>tensor</code> declarations and <code>softmax</code> calls. In Phase 3 he built the <code>matrixdslc</code> driver and the shared <code>Pipeline</code> used by every tool, and added caret diagnostics. He also wired the Phase 2 keywords into the lexer and added signed literals. Evidence: 28 lexer and parser tests.</p>
+<p><b>Mudpe Parth Tulsidas (24BDS0353).</b> He built the shape-as-type semantic analyser and the scoped symbol table, the Phase 2 batch-broadcast rule and <code>checkSoftmax</code>. In Phase 3 he built the differential tester <code>mtxverify</code> and the end-to-end corpus (11 positive, 6 negative programs). He also fixed the symbol-table scope order and the Windows test-driver quoting. Evidence: 9 semantic tests, 100/100 verified runs and 6/6 rejections.</p>
+<p><b>Kandi Jeevitesh Reddy (24BCE0350).</b> He designed the Tensor IR (19 operation kinds in two tiers) and the use-count-guarded fusion pass. In Phase 3 he built the AST-to-Tensor-IR lowering, epilogue fusion, dead-code elimination and the capacity-aware scratchpad tiling pass. He also built the reference interpreter used as the oracle, and the LLVM IR text emitter. Evidence: 9 reference-runtime tests and the <code>--emit-tir</code>/<code>--stats</code> outputs.</p>
+<p><b>Shreyas Mandem (24BCE0381).</b> He designed the MDT ISA (17, then 24 instructions), the 64 KiB scratchpad, BF16 support, the reductions, the assembler, the simulator and the performance model. In Phase 3 he built the MDT code generator (memory layout, instruction selection, identity-tile addition), the runtime ABI, the <code>mtxbench</code> ablation study and the MatrixDSL Lab (<code>mtxserve</code>, dashboard, Chrome extension). He also integrated all members' work into a single build and wrote this report. Evidence: 17 back-end tests and 32/32 verified benchmark runs.</p>
+</div>
+</body>
+</html>

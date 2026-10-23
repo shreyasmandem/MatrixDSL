@@ -8,7 +8,7 @@
 | **Project ID** | A3 · Team 13 |
 | **Target** | MDT (MatrixDSL Target): a custom matrix ISA with a 64 KiB scratchpad |
 | **Status** | Final review (Phase 3): complete end-to-end pipeline, 70/70 tests, measured ablation study |
-| **Final report** | [`docs/review3/Final_Report.pdf`](docs/review3/Final_Report.pdf) ([markdown](docs/review3/Final_Report.md)) |
+| **Final report** | [`docs/review3/Final_Report.pdf`](docs/review3/Final_Report.pdf) (IEEE format; source [`Final_Report_IEEE.html`](docs/review3/Final_Report_IEEE.html), [markdown](docs/review3/Final_Report.md)) |
 
 ```
 matrix X[16][16];  matrix W1[16][16];  matrix B1[16][16];

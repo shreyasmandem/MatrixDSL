@@ -171,6 +171,44 @@ pre.code{margin:0;background:var(--code);color:var(--codeInk);font:12.3px/1.65 v
 .geo div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--paper)}
 .geo b{display:block;font:600 26px var(--mono);color:var(--green)}.geo span{font-size:12.5px;color:var(--muted)}
 
+/* flowchart simulation */
+.flowsim{padding:22px;margin-top:26px}
+.seg{display:inline-flex;background:var(--sunk);border-radius:999px;padding:3px;gap:2px}
+.seg button{font:500 13px var(--sans);border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.fc{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.fc-row{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;row-gap:10px}
+.fnode{position:relative;flex:1 1 150px;min-width:132px;border:1.5px solid var(--line2);border-radius:12px;padding:10px 12px 9px;background:var(--surface);transition:border-color .3s,background .3s,box-shadow .3s,opacity .3s}
+.fnode b{display:block;font-size:13.5px;line-height:1.25}
+.fnode .fs{display:block;font:11px/1.35 var(--mono);color:var(--muted);margin-top:3px;min-height:2.7em}
+.fnode .own{position:absolute;top:-9px;right:8px;font:600 9.5px var(--mono);padding:1px 6px;border-radius:999px;background:var(--sunk);color:var(--ink2);border:1px solid var(--line)}
+.fnode .badge{position:absolute;top:-9px;left:8px;font:700 9px var(--mono);letter-spacing:.05em;padding:1px 6px;border-radius:4px;display:none}
+.fnode.ok{border-color:var(--green2)}
+.fnode.new{border-color:var(--green2);background:var(--tint)}
+.fnode.new .badge{display:block;background:var(--green);color:var(--onGreen)}
+.fnode.hand{border-color:var(--amber);background:var(--amberBg)}
+.fnode.hand .badge{display:block;background:var(--amber);color:#2a1e07}
+.fnode.missing{border-style:dashed;opacity:.55;background:transparent}
+.fnode.missing .badge{display:block;background:var(--slate);color:#fff}
+.fnode.active{box-shadow:0 0 0 4px color-mix(in srgb,var(--green2) 35%,transparent)}
+.fnode.stop{box-shadow:0 0 0 4px color-mix(in srgb,var(--bad) 35%,transparent)}
+.flink{flex:0 0 34px;display:grid;place-items:center;font:600 15px var(--mono);color:var(--line2);transition:color .3s}
+.flink.lit{color:var(--green2)}
+.flink.broken{color:var(--bad)}
+.fwrap{display:flex;justify-content:flex-end;padding-right:60px;font:600 15px var(--mono);color:var(--line2);height:12px;line-height:12px}
+.fwrap.lit{color:var(--green2)}.fwrap.broken{color:var(--bad)}
+@media (max-width:760px){.flink{flex-basis:100%;height:16px}.fwrap{display:none}}
+.fc-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:14px}
+.fc-legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-2px;border:1.5px solid}
+.fc-out{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;margin-top:16px}
+@media (max-width:860px){.fc-out{grid-template-columns:1fr}}
+.fc-say{background:var(--sunk);border-radius:12px;padding:14px 16px;font-size:14.5px;color:var(--ink2);min-height:150px}
+.fc-say .st{display:block;font:600 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--green2);margin-bottom:6px}
+.fc-say .st.bad{color:var(--bad)}.fc-say .st.amb{color:var(--amber)}
+.fc-say b{color:var(--ink)}
+.fc-art .lbl2{font:600 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.fc-art pre{margin:0;background:var(--code);color:var(--codeInk);font:12.3px/1.6 var(--mono);padding:12px 14px;border-radius:10px;min-height:150px;overflow-x:auto;white-space:pre}
+
 /* extension */
 .ext{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;margin-top:24px}
 @media (max-width:880px){.ext{grid-template-columns:1fr}}
@@ -249,6 +287,59 @@ footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
           <tr><td class="area">ISA</td><td class="p2">24 instructions, 64 KiB scratchpad</td><td class="p3 same">Unchanged on purpose: Phase 3 grew the compiler, not the ISA</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Flowchart simulation: one program's journey, Phase 2 vs Phase 3 -->
+    <div class="card flowsim" id="flowsim">
+      <div class="sim-head">
+        <div><div class="sim-k">Simulation 0 · the big picture</div><h3>Follow one program through the compiler</h3></div>
+        <div class="ctrl">
+          <div class="seg" role="group" aria-label="Phase">
+            <button type="button" id="fcP2" aria-pressed="false">Phase 2</button>
+            <button type="button" id="fcP3" aria-pressed="true">Phase 3</button>
+          </div>
+          <button class="btn pri" id="fcPlay" type="button">Play ▸</button>
+          <button class="btn" id="fcStep" type="button">Step</button>
+        </div>
+      </div>
+      <p class="muted small" style="margin:8px 0 0">Program: <code>Y = relu(matmul(X, W) + B);  print(Y);</code> Pick a phase and press Play to watch where the program goes. In Phase 2 it can't get past the third box. In Phase 3 it runs from start to finish.</p>
+
+      <div class="fc" id="fc">
+        <div class="fc-row">
+          <div class="fnode" data-i="0"><span class="badge"></span><span class="own">team</span><b>Source code</b><span class="fs">layer.mtx</span></div>
+          <div class="flink" data-l="0">→</div>
+          <div class="fnode" data-i="1"><span class="badge"></span><span class="own">Vinay</span><b>Lexer + parser</b><span class="fs">words → tree</span></div>
+          <div class="flink" data-l="1">→</div>
+          <div class="fnode" data-i="2"><span class="badge"></span><span class="own">Parth</span><b>Shape checker</b><span class="fs">do the sizes fit?</span></div>
+          <div class="flink" data-l="2">→</div>
+          <div class="fnode" data-i="3"><span class="badge"></span><span class="own">Jeevitesh</span><b>Tensor IR</b><span class="fs">list of matrix steps</span></div>
+          <div class="flink" data-l="3">→</div>
+          <div class="fnode" data-i="4"><span class="badge"></span><span class="own">Jeevitesh</span><b>Optimiser</b><span class="fs">fusion · DCE · tiling</span></div>
+        </div>
+        <div class="fwrap" data-l="4">↓</div>
+        <div class="fc-row">
+          <div class="fnode" data-i="5"><span class="badge"></span><span class="own">Shreyas</span><b>Code generator</b><span class="fs">steps → MDT instructions</span></div>
+          <div class="flink" data-l="5">→</div>
+          <div class="fnode" data-i="6"><span class="badge"></span><span class="own">Shreyas</span><b>MDT simulator</b><span class="fs">runs + counts cycles</span></div>
+          <div class="flink" data-l="6">→</div>
+          <div class="fnode" data-i="7"><span class="badge"></span><span class="own">Parth</span><b>Verifier</b><span class="fs">answer == reference?</span></div>
+          <div class="flink" data-l="7">→</div>
+          <div class="fnode" data-i="8"><span class="badge"></span><span class="own">Shreyas</span><b>Measure + Lab</b><span class="fs">traditional vs ours</span></div>
+        </div>
+      </div>
+
+      <div class="fc-legend">
+        <span><i style="border-color:var(--green2);background:var(--surface)"></i>worked in both phases</span>
+        <span><i style="border-color:var(--green2);background:var(--tint)"></i>new in Phase 3</span>
+        <span><i style="border-color:var(--amber);background:var(--amberBg)"></i>Phase 2: done by hand</span>
+        <span><i style="border-color:var(--slate);border-style:dashed"></i>Phase 2: didn't exist</span>
+        <span><span style="color:var(--bad);font-weight:700;font-family:var(--mono)">✕</span> no connection</span>
+      </div>
+
+      <div class="fc-out">
+        <div class="fc-say" id="fcSay" aria-live="polite"></div>
+        <div class="fc-art"><div class="lbl2" id="fcArtL">what the compiler holds</div><pre id="fcArt"></pre></div>
+      </div>
     </div>
   </div>
 </section>
@@ -569,6 +660,87 @@ $("#suite").addEventListener("click",function(){
     renderSuite(ORDER.filter(function(n){return byName[n]}).map(function(n){return {n:n,c:byName[n].configs.map(function(c){return [c.overlap,c.dram,c.instr]})}}));
   }).catch(function(){setMode(false)}).then(function(){b.disabled=!live;b.textContent="Re-run live ▸"});
 });
+
+/* ---- sim 0: flowchart, Phase 2 vs Phase 3 ---- */
+(function(){
+  var nodes=[].slice.call(document.querySelectorAll("#fc .fnode"));
+  var links=[];[].slice.call(document.querySelectorAll("#fc [data-l]")).forEach(function(el){links[+el.dataset.l]={el:el,base:el.classList.contains("fwrap")?"fwrap":"flink"}});
+  var BADGE={new:"NEW",hand:"BY HAND",missing:"MISSING",ok:""};
+  var SRCP="matrix X[4][4];\nmatrix W[4][4];\nmatrix B[4][4];\nmatrix Y[4][4];\nY = relu(matmul(X, W) + B);\nprint(Y);";
+  var AST="MATRIX IDENTIFIER(X) LBRACKET INT(4) ...\nIDENTIFIER(Y) ASSIGN RELU LPAREN MATMUL ...\n\nAssign(Y)\n└─ CallExpr(relu)\n   └─ BinaryExpr(+)\n      ├─ CallExpr(matmul, [Var X, Var W])\n      └─ Var B";
+  var SHAPES="matmul(X, W)   4x4 · 4x4   inner 4 = 4   → 4x4  ✓\n... + B        4x4 + 4x4   same shape    → 4x4  ✓\nrelu(...)      4x4         keeps shape   → 4x4  ✓\nY = ...        Y is 4x4    matches          ✓";
+  var LOWER="%0 = Load @X : 4x4\n%1 = Load @W : 4x4\n%2 = MatMul %0 %1 : 4x4\n%3 = Load @B : 4x4\n%4 = Add %2 %3 : 4x4\n%5 = Relu %4 : 4x4\n%6 = Print %5 @Y : 4x4";
+  var OPTIM="%0 = Load @X : 4x4\n%1 = Load @W : 4x4\n%2 = Load @B : 4x4\n%3 = FusedMatMulRelu %0 %1 %2 : 4x4\n%4 = Print %3 @Y : 4x4\n\n; MatMul + Add + Relu  →  one fused step\n; 2 unused steps removed (DCE)";
+  var ASMT="ADD    R1, R0, 0      ; &X\nADD    R2, R0, 64     ; &W\nADD    R3, R0, 128    ; &B\nADD    R4, R0, 192    ; &Y\nLOAD   M0, [R3 + 0]   ; start from B\nLOAD   M1, [R1 + 0]   ; X tile\nLOAD   M2, [R2 + 0]   ; W tile\nMATMULACC M0, M1, M2  ; M0 = B + X·W\nRELU   M0, M0         ; in register\nSTORE  M0, [R4 + 0]   ; only one store\n...  CALL mdt_print";
+  var RUN="Y = (4x4)\n  [  0.8750  0.0000  0.0000  4.7188 ]\n  [  1.5156  3.7188  2.8438  0.0000 ]\n  [  3.0312  0.0000  2.6406  4.2188 ]\n  [  0.0000  0.2031  0.0000  0.0000 ]\n\ninstructions 17 · DRAM 256 B · 39 cycles";
+  var VER="reference interpreter (host) vs MDT simulator\n\n  baseline        16/16 values equal   PASS\n  fusion          16/16 values equal   PASS\n  tiling          16/16 values equal   PASS\n  fusion+tiling   16/16 values equal   PASS";
+  var MEAS="                 cycles   DRAM    instructions\n  traditional        73   576 B   27\n  MatrixDSL          39   256 B   17\n\n  → 1.87x faster, 2.25x less memory traffic\n  (and live in the Lab / Chrome extension)";
+  var P={
+   2:{st:["ok","ok","ok","hand","hand","missing","hand","missing","hand"],
+      fs:["layer.mtx","words → tree","do the sizes fit?","typed in by hand","fusion only, on hand-made graphs","did not exist","ran hand-written .s files","only per-stage tests","2 hand-written programs"],
+      broken:[2,4,5,6],
+      rest:"<span class='st amb'>Phase 2 at a glance</span>Every box existed and passed its own tests, but <b>the boxes weren't connected</b>. A program could be read and shape-checked, then it stopped. To test the later stages, the team typed their inputs in by hand. Press <b>Play</b> to watch it stop.",
+      steps:[
+       {say:"<span class='st'>1 · Source code</span>The program starts as plain MatrixDSL text: one layer of a neural network.",art:SRCP,l:"source"},
+       {say:"<span class='st'>2 · Lexer + parser (Vinay)</span>Vinay's parser reads the text and builds a tree showing what happens first. This worked in Phase 2.",art:AST,l:"tokens and tree"},
+       {say:"<span class='st'>3 · Shape checker (Parth)</span>Parth's checker confirms every size fits. This also worked in Phase 2.",art:SHAPES,l:"shape check"},
+       {say:"<span class='st bad'>✕ Stops here</span><b>Nothing turned the checked tree into Tensor IR.</b> To test his optimiser, Jeevitesh had to type each graph in by hand, in C++.",art:"// Phase 2: mtxtensorir built graphs by hand\nTensorOp *a  = fn.addOp(Load, s);\nTensorOp *b  = fn.addOp(Load, s);\nTensorOp *mm = fn.addOp(MatMul, s, {a, b});\nfn.addOp(Relu, s, {mm});",l:"hand-made input",stop:2},
+       {say:"<span class='st amb'>Optimiser: hand-made graphs only</span>Fusion worked, but only on those typed-in graphs. <code>relu(A·B + C)</code> still took <b>two</b> steps.",art:"%3 = MatMul %0 %1     ; dead\n%4 = FusedMatMulAcc %0 %1 %2\n%5 = Relu %4          ; still separate\n; tile stored, then loaded back for Relu",l:"Phase 2 best result"},
+       {say:"<span class='st bad'>✕ Missing</span><b>There was no code generator.</b> Nothing could turn Tensor IR into MDT machine instructions.",art:"(this stage did not exist in Phase 2)",l:"code generator",stop:4},
+       {say:"<span class='st amb'>Simulator: hand-written programs</span>The MDT simulator worked, but only on assembly Shreyas <b>wrote by hand</b>, such as the scratchpad demo (37 → 26 cycles).",art:"; tests/backend/tiling_scratchpad.s (hand-written)\nLOAD         M1, [R1 + 0]\nSCRATCHSTORE M1, [R11 + 0]\nSCRATCHLOAD  M1, [R11 + 0]\nMATMUL       M2, M1, M1\n...",l:"hand-written assembly"},
+       {say:"<span class='st bad'>✕ Missing</span>Each part had its own tests (28 front end + 17 back end), but <b>nothing checked that a whole program gave the right answer</b>.",art:"(no end-to-end check in Phase 2)",l:"verifier",stop:6},
+       {say:"<span class='st amb'>Measurement: 2 programs</span>The performance model measured only the 2 hand-written programs. Switch to <b>Phase 3</b> to see the full journey.",art:"tiling_naive.s       37 cycles   192 B DRAM\ntiling_scratchpad.s  26 cycles    64 B DRAM",l:"Phase 2 measurement"}
+      ]},
+   3:{st:["ok","ok","ok","new","new","new","ok","new","new"],
+      fs:["layer.mtx","words → tree (+ clear errors)","do the sizes fit?","built automatically","+ epilogue fusion · DCE · tiling","Tensor IR → MDT assembly","+ print / softmax runtime","4 builds × reference","8×4 study · Lab · extension"],
+      broken:[],
+      rest:"<span class='st'>Phase 3 at a glance</span><b>Every box is connected.</b> One command, <code>matrixdslc layer.mtx --run --verify</code>, takes the program from text to a verified answer and a cycle count. The green-tinted boxes are what Phase 3 added. Press <b>Play</b> to follow the program step by step.",
+      steps:[
+       {say:"<span class='st'>1 · Source code</span>The program starts as plain MatrixDSL text: one layer of a neural network.",art:SRCP,l:"source"},
+       {say:"<span class='st'>2 · Lexer + parser (Vinay)</span>The text becomes words (tokens), then a tree showing what happens first. <b>New:</b> errors now point at the exact spot with a caret (^).",art:AST,l:"tokens and tree"},
+       {say:"<span class='st'>3 · Shape checker (Parth)</span>Every size is checked before anything runs. A bad shape stops here with a clear error.",art:SHAPES,l:"shape check"},
+       {say:"<span class='st'>4 · Tensor IR (Jeevitesh) · NEW</span><b>The missing bridge.</b> The checked tree is turned into a numbered list of matrix steps automatically. In Phase 2 this list had to be typed in by hand.",art:LOWER,l:"Tensor IR, lowered from source"},
+       {say:"<span class='st'>5 · Optimiser (Jeevitesh) · NEW parts</span>MatMul + Add + Relu are joined into <b>one step</b> (Phase 2 needed two). Unused steps are removed. Big matrices get their reused tiles kept in the fast scratchpad.",art:OPTIM,l:"Tensor IR, after the passes"},
+       {say:"<span class='st'>6 · Code generator (Shreyas) · NEW</span>The plan becomes real MDT machine instructions. <b>This stage didn't exist in Phase 2.</b> The fused step is a single <code>MATMULACC</code> + <code>RELU</code>, done inside the registers.",art:ASMT,l:"MDT assembly (generated)"},
+       {say:"<span class='st'>7 · MDT simulator (Shreyas)</span>The instructions run on the simulated MDT processor, which prints Y and counts the cycles. <b>New:</b> built-in print and softmax support.",art:RUN,l:"simulator output"},
+       {say:"<span class='st'>8 · Verifier (Parth) · NEW</span>The same program is compiled <b>4 ways</b>, each run is compared with a separate trusted calculation, and every number must match.",art:VER,l:"mtxverify"},
+       {say:"<span class='st'>9 · Measure (Shreyas) · NEW</span>The traditional compile and MatrixDSL are measured side by side. This layer runs <b>1.87× faster</b>, and the Lab dashboard and Chrome extension show it live.",art:MEAS,l:"measured result"}
+      ]}
+  };
+  var phase=3,idx=-1,timer=null;
+  function esc2(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+  function paint(){
+    var d=P[phase],rest=idx<0,step=rest?null:d.steps[idx];
+    nodes.forEach(function(n,i){
+      var cls=d.st[i];
+      n.className="fnode "+cls+(!rest&&i===idx?(step.stop!=null?"":" active"):"")+(!rest&&step.stop!=null&&i===step.stop?" stop":"");
+      if(!rest&&i>idx)n.style.opacity=cls==="missing"?".35":".55";else n.style.opacity="";
+      n.querySelector(".badge").textContent=BADGE[cls];
+      n.querySelector(".fs").textContent=d.fs[i];
+    });
+    links.forEach(function(L,k){
+      var state=d.broken.indexOf(k)>=0?" broken":(rest||k<idx?" lit":"");
+      L.el.className=L.base+state;
+      L.el.textContent=d.broken.indexOf(k)>=0?"✕":(L.base==="fwrap"?"↓":"→");
+    });
+    if(rest){$("#fcSay").innerHTML=d.rest;$("#fcArtL").textContent=phase===3?"the whole pipeline, one command":"Phase 2: separate tools";
+      $("#fcArt").textContent=phase===3?"$ matrixdslc layer.mtx --run --perf --verify\n\nY = (4x4)  ...\nInstructions executed : 17\nBytes moved (DRAM)    : 256\nEstimated cycles      : 39 (overlap-aware)\n\nverify: PASS - 1 print(s) match the reference":"$ mtxparse layer.mtx      (parse only)\n$ mtxcheck ...            (shape rules)\n$ mtxtensorir             (hand-built graphs)\n$ mdtsim tiling_naive.s   (hand-written asm)\n\n... four tools, no path between them";}
+    else{$("#fcSay").innerHTML=step.say;$("#fcArtL").textContent=step.l;$("#fcArt").textContent=step.art;}
+  }
+  function stop(){clearInterval(timer);timer=null;$("#fcPlay").textContent="Play ▸"}
+  function setPhase(p){stop();phase=p;idx=-1;$("#fcP2").setAttribute("aria-pressed",p===2);$("#fcP3").setAttribute("aria-pressed",p===3);paint()}
+  function next(){if(idx>=P[phase].steps.length-1){stop();return false}idx++;paint();return true}
+  $("#fcP2").addEventListener("click",function(){setPhase(2)});
+  $("#fcP3").addEventListener("click",function(){setPhase(3)});
+  $("#fcPlay").addEventListener("click",function(){
+    if(timer){stop();return}
+    if(idx>=P[phase].steps.length-1)idx=-1;
+    next();$("#fcPlay").textContent="Pause";
+    timer=setInterval(function(){if(!next())stop()},reduce?900:3600);
+  });
+  $("#fcStep").addEventListener("click",function(){stop();if(idx>=P[phase].steps.length-1)idx=-1;next()});
+  paint();
+})();
 
 /* ---- scroll spy ---- */
 var secs=Array.prototype.slice.call(document.querySelectorAll("main section[id]")),links=Array.prototype.slice.call(document.querySelectorAll("#links a"));
